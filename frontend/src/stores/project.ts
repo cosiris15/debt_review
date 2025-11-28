@@ -20,10 +20,11 @@ export const useProjectStore = defineStore('project', () => {
   const creditorsByBatch = computed(() => {
     const batches: Record<number, Creditor[]> = {}
     creditors.value.forEach(c => {
-      if (!batches[c.batch_number]) {
-        batches[c.batch_number] = []
+      const batchNum = c.batch_number
+      if (!batches[batchNum]) {
+        batches[batchNum] = []
       }
-      batches[c.batch_number].push(c)
+      batches[batchNum]!.push(c)
     })
     return batches
   })

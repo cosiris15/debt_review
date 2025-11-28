@@ -4,29 +4,32 @@
 
 // ============== Enums ==============
 
-export enum TaskStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  CANCELLED = 'cancelled'
-}
+export const TaskStatus = {
+  PENDING: 'pending',
+  RUNNING: 'running',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  CANCELLED: 'cancelled'
+} as const
+export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus]
 
-export enum TaskStage {
-  INIT = 'init',
-  FACT_CHECK = 'fact_check',
-  ANALYSIS = 'analysis',
-  REPORT = 'report',
-  VALIDATION = 'validation',
-  COMPLETE = 'complete'
-}
+export const TaskStage = {
+  INIT: 'init',
+  FACT_CHECK: 'fact_check',
+  ANALYSIS: 'analysis',
+  REPORT: 'report',
+  VALIDATION: 'validation',
+  COMPLETE: 'complete'
+} as const
+export type TaskStage = typeof TaskStage[keyof typeof TaskStage]
 
-export enum CreditorStatus {
-  NOT_STARTED = 'not_started',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed',
-  FAILED = 'failed'
-}
+export const CreditorStatus = {
+  NOT_STARTED: 'not_started',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  FAILED: 'failed'
+} as const
+export type CreditorStatus = typeof CreditorStatus[keyof typeof CreditorStatus]
 
 // ============== Project ==============
 
@@ -141,13 +144,24 @@ export interface InterestCalculationRequest {
   lpr_term?: '1y' | '5y'
 }
 
+export interface CalculationPeriod {
+  start: string
+  end: string
+  days: number
+  interest: number
+  effective_rate: number
+}
+
 export interface InterestCalculationResponse {
   principal: number
   interest: number
   total: number
   days: number
   rate_used: number
-  calculation_details: Record<string, unknown>
+  calculation_details: {
+    periods?: CalculationPeriod[]
+    [key: string]: unknown
+  }
 }
 
 // ============== API Response ==============

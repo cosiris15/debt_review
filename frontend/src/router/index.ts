@@ -40,7 +40,7 @@ const router = createRouter({
 })
 
 // Update document title on navigation
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   document.title = `${to.meta.title || '债权审查系统'} - 债权审查系统`
   next()
 })

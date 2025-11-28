@@ -4,10 +4,9 @@
  *
  * Displays creditors grouped by batch with selection support.
  */
-import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/stores/project'
-import { CreditorStatus, STATUS_COLORS } from '@/types'
+import { CreditorStatus } from '@/types'
 
 const projectStore = useProjectStore()
 const { creditors, selectedCreditors, creditorsByBatch, batchNumbers } = storeToRefs(projectStore)
@@ -93,7 +92,7 @@ function formatAmount(amount?: number): string {
     <div v-else class="divide-y">
       <div v-for="batch in batchNumbers" :key="batch" class="p-4">
         <h4 class="text-sm font-medium text-gray-500 mb-3">
-          第 {{ batch }} 批 ({{ creditorsByBatch[batch].length }} 人)
+          第 {{ batch }} 批 ({{ creditorsByBatch[batch]?.length || 0 }} 人)
         </h4>
         <div class="space-y-2">
           <div

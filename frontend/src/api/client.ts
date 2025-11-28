@@ -5,7 +5,7 @@
  * Includes automatic polling for long-running tasks.
  */
 
-import axios, { AxiosInstance, AxiosError } from 'axios'
+import axios, { type AxiosInstance, type AxiosError } from 'axios'
 import type {
   Project, ProjectCreate,
   Creditor, CreditorCreate,
