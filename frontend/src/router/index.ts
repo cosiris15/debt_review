@@ -46,6 +46,12 @@ const router = createRouter({
       meta: { title: '项目详情' }
     },
     {
+      path: '/projects/:projectId/creditors/:creditorId',
+      name: 'creditor-detail',
+      component: () => import('@/pages/CreditorDetailPage.vue'),
+      meta: { title: '债权人详情' }
+    },
+    {
       path: '/calculator',
       name: 'calculator',
       component: () => import('@/pages/CalculatorPage.vue'),

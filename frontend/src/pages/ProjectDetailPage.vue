@@ -116,7 +116,7 @@ function formatDate(date: string): string {
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Creditor list -->
         <div>
-          <CreditorList @submit="handleSubmitTask" />
+          <CreditorList :project-id="projectId" @submit="handleSubmitTask" />
         </div>
 
         <!-- Task monitor -->

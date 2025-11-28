@@ -245,6 +245,13 @@ class Database:
         return result.data[0] if result.data else None
 
     @classmethod
+    def get_report(cls, report_id: str) -> Optional[Dict[str, Any]]:
+        """Get report by ID."""
+        client = cls.get_client()
+        result = client.table("reports").select("*").eq("id", report_id).execute()
+        return result.data[0] if result.data else None
+
+    @classmethod
     def list_reports(cls, creditor_id: str) -> List[Dict[str, Any]]:
         """List reports for a creditor."""
         client = cls.get_client()

@@ -6,6 +6,7 @@ Implements async task submission + polling pattern.
 """
 
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from fastapi.responses import PlainTextResponse
 from typing import List, Optional
 from datetime import datetime, timedelta
 
@@ -213,6 +214,86 @@ async def get_creditor(
         output_path=creditor.get("output_path"),
         created_at=creditor["created_at"],
         updated_at=creditor["updated_at"]
+    )
+
+
+@creditors_router.get("/{creditor_id}/reports")
+async def get_creditor_reports(
+    creditor_id: str,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """Get all reports for a creditor. Requires authentication."""
+    creditor = db.get_creditor(creditor_id)
+    if not creditor:
+        raise HTTPException(404, "Creditor not found")
+
+    reports = db.list_reports(creditor_id)
+    return {
+        "creditor_id": creditor_id,
+        "creditor_name": creditor["creditor_name"],
+        "reports": reports
+    }
+
+
+@creditors_router.get("/{creditor_id}/calculations")
+async def get_creditor_calculations(
+    creditor_id: str,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """Get all calculations for a creditor. Requires authentication."""
+    creditor = db.get_creditor(creditor_id)
+    if not creditor:
+        raise HTTPException(404, "Creditor not found")
+
+    calculations = db.list_calculations(creditor_id)
+    return {
+        "creditor_id": creditor_id,
+        "creditor_name": creditor["creditor_name"],
+        "calculations": calculations
+    }
+
+
+# ============== Reports ==============
+
+reports_router = APIRouter(prefix="/reports", tags=["Reports"])
+
+
+@reports_router.get("/{report_id}")
+async def get_report(
+    report_id: str,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """Get a single report by ID. Requires authentication."""
+    report = db.get_report(report_id)
+    if not report:
+        raise HTTPException(404, "Report not found")
+    return report
+
+
+@reports_router.get("/{report_id}/content", response_class=PlainTextResponse)
+async def get_report_content(
+    report_id: str,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """
+    Get the full content of a report for download.
+    Returns plain text markdown content.
+    Requires authentication.
+    """
+    report = db.get_report(report_id)
+    if not report:
+        raise HTTPException(404, "Report not found")
+
+    content = report.get("content") or report.get("content_preview") or ""
+    if not content:
+        raise HTTPException(404, "Report content not available")
+
+    return PlainTextResponse(
+        content=content,
+        media_type="text/markdown",
+        headers={
+            "Content-Disposition": f'attachment; filename="{report.get("file_name", "report.md")}"'
+        }
     )
 
 

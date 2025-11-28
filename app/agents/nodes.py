@@ -6,17 +6,75 @@ Nodes are responsible for:
 1. Executing their specific task
 2. Updating state
 3. Syncing progress to database
+
+The analysis node automatically invokes the calculator tool for interest calculations,
+matching the original agent workflow where the LLM agent calls calculator autonomously.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 import logging
+import re
+import json
 
 from app.agents.state import WorkflowState, WorkflowStage, CreditorState, calculate_progress
 from app.core.database import db
 from app.agents.llm import get_llm, create_fact_check_prompt, create_analysis_prompt, create_report_prompt
+from app.tools.calculator import calculate_interest
 
 logger = logging.getLogger(__name__)
+
+
+def extract_calculation_requests(analysis_text: str, bankruptcy_date: str) -> List[Dict[str, Any]]:
+    """
+    Extract calculation parameters from analysis report.
+
+    The LLM is prompted to output calculation requests in a specific format:
+    【利息计算】本金: XXX, 起始日: YYYY-MM-DD, 类型: lpr/simple/delay
+
+    Returns list of calculation parameters for the calculator tool.
+    """
+    calculations = []
+
+    # Pattern to match calculation requests embedded in the analysis
+    # Format: 【利息计算】本金: 100000, 起始日: 2023-01-01, 类型: lpr, 倍数: 1.5
+    pattern = r'【利息计算】本金:\s*([\d,.]+)(?:元)?,?\s*起始日:\s*(\d{4}-\d{2}-\d{2}),?\s*类型:\s*(\w+)(?:,?\s*倍数:\s*([\d.]+))?(?:,?\s*利率:\s*([\d.]+)%?)?'
+
+    for match in re.finditer(pattern, analysis_text):
+        principal_str = match.group(1).replace(',', '').replace('，', '')
+        start_date = match.group(2)
+        calc_type = match.group(3).lower()
+        multiplier = float(match.group(4)) if match.group(4) else 1.0
+        rate = float(match.group(5)) if match.group(5) else None
+
+        try:
+            principal = float(principal_str)
+
+            # Calculate interest stop date (bankruptcy_date - 1 day)
+            from datetime import datetime as dt, timedelta
+            end_dt = dt.strptime(bankruptcy_date, "%Y-%m-%d") - timedelta(days=1)
+            end_date = end_dt.strftime("%Y-%m-%d")
+
+            calc_params = {
+                "calculation_type": calc_type,
+                "principal": principal,
+                "start_date": start_date,
+                "end_date": end_date
+            }
+
+            if calc_type == "lpr":
+                calc_params["multiplier"] = multiplier
+                calc_params["lpr_term"] = "1y"  # Default to 1-year LPR
+            elif calc_type in ["simple", "penalty"]:
+                calc_params["rate"] = rate or 4.35  # Default rate
+
+            calculations.append(calc_params)
+
+        except ValueError as e:
+            logger.warning(f"Failed to parse calculation: {e}")
+            continue
+
+    return calculations
 
 
 async def init_node(state: WorkflowState) -> Dict[str, Any]:
@@ -149,7 +207,14 @@ async def analysis_node(state: WorkflowState) -> Dict[str, Any]:
     """
     Execute debt analysis for the current creditor.
 
-    Analyzes amounts, calculates interest, determines confirmation status.
+    This node:
+    1. Calls LLM to analyze the debt claim
+    2. Automatically extracts and executes interest calculations
+    3. Updates the analysis with calculated results
+    4. Saves all calculation records to database
+
+    The calculator tool is called AUTOMATICALLY during analysis,
+    matching the original agent workflow behavior.
     """
     current_idx = state["current_creditor_index"]
     creditor = state["creditors"][current_idx]
@@ -175,12 +240,79 @@ async def analysis_node(state: WorkflowState) -> Dict[str, Any]:
         response = await llm.ainvoke(prompt)
         analysis_report = response.content
 
-        # TODO: Parse analysis report to extract confirmed amounts
-        # For now, using declared amounts as placeholder
+        # ==== AUTOMATIC CALCULATOR INVOCATION ====
+        # Extract calculation requests from the analysis
+        calculation_requests = extract_calculation_requests(
+            analysis_report,
+            state["bankruptcy_date"]
+        )
+
+        calculation_results = []
+        total_calculated_interest = 0.0
+
+        for calc_params in calculation_requests:
+            logger.info(f"Auto-executing calculator: {calc_params}")
+
+            # Call calculator tool automatically
+            result = calculate_interest(**calc_params)
+
+            if "error" not in result:
+                calculation_results.append(result)
+                total_calculated_interest += result.get("interest", 0)
+
+                # Save calculation to database
+                await db.save_calculation({
+                    "creditor_id": creditor["creditor_id"],
+                    "task_id": state["task_id"],
+                    "calculation_type": calc_params["calculation_type"],
+                    "principal": calc_params["principal"],
+                    "interest": result.get("interest", 0),
+                    "total": result.get("total", calc_params["principal"]),
+                    "parameters": calc_params,
+                    "result": result
+                })
+
+                await db.add_task_log(
+                    task_id=state["task_id"],
+                    message=f"Calculator executed: {calc_params['calculation_type']} for {calc_params['principal']}",
+                    level="info",
+                    stage="analysis",
+                    creditor_id=creditor["creditor_id"],
+                    details={"calculation": result}
+                )
+            else:
+                logger.warning(f"Calculator error: {result['error']}")
+
+        # Append calculation results to analysis report
+        if calculation_results:
+            calc_summary = "\n\n=== 利息计算结果（由系统自动计算）===\n"
+            for i, result in enumerate(calculation_results, 1):
+                calc_summary += f"\n计算{i}:\n"
+                calc_summary += f"  本金: {result.get('principal', 0):,.2f}元\n"
+                calc_summary += f"  利息: {result.get('interest', 0):,.2f}元\n"
+                calc_summary += f"  合计: {result.get('total', 0):,.2f}元\n"
+                calc_summary += f"  计算天数: {result.get('days', result.get('total_days', 0))}天\n"
+            analysis_report += calc_summary
+
+        # Determine confirmed amounts
+        # Apply 就低原则: use declared amount if calculation exceeds it
+        declared_principal = creditor.get("declared_principal") or 0
+        declared_interest = creditor.get("declared_interest") or 0
+        declared_total = creditor.get("declared_total") or 0
+
+        confirmed_principal = declared_principal
+        confirmed_interest = min(total_calculated_interest, declared_interest) if declared_interest else total_calculated_interest
+        confirmed_total = confirmed_principal + confirmed_interest
+
+        # Apply final 就低原则 on total
+        if declared_total and confirmed_total > declared_total:
+            confirmed_total = declared_total
+
         creditor["analysis_report"] = analysis_report
-        creditor["confirmed_principal"] = creditor.get("declared_principal")
-        creditor["confirmed_interest"] = creditor.get("declared_interest")
-        creditor["confirmed_total"] = creditor.get("declared_total")
+        creditor["confirmed_principal"] = confirmed_principal
+        creditor["confirmed_interest"] = confirmed_interest
+        creditor["confirmed_total"] = confirmed_total
+        creditor["calculation_results"] = calculation_results
         creditor["stage_completed"]["analysis"] = True
         creditor["current_stage"] = WorkflowStage.REPORT
 
@@ -200,15 +332,15 @@ async def analysis_node(state: WorkflowState) -> Dict[str, Any]:
 
         # Update creditor in database with confirmed amounts
         await db.update_creditor(creditor["creditor_id"], {
-            "confirmed_principal": creditor["confirmed_principal"],
-            "confirmed_interest": creditor["confirmed_interest"],
-            "confirmed_total": creditor["confirmed_total"],
+            "confirmed_principal": confirmed_principal,
+            "confirmed_interest": confirmed_interest,
+            "confirmed_total": confirmed_total,
             "current_stage": "report"
         })
 
         await db.add_task_log(
             task_id=state["task_id"],
-            message=f"Analysis completed for {creditor['creditor_name']}",
+            message=f"Analysis completed for {creditor['creditor_name']} ({len(calculation_results)} calculations executed)",
             level="info",
             stage="analysis",
             creditor_id=creditor["creditor_id"]
@@ -216,7 +348,7 @@ async def analysis_node(state: WorkflowState) -> Dict[str, Any]:
 
         return {
             **state,
-            "logs": [f"Analysis completed for {creditor['creditor_name']}"],
+            "logs": [f"Analysis completed for {creditor['creditor_name']} with {len(calculation_results)} auto-calculations"],
             "progress_percent": calculate_progress(state)
         }
 

@@ -86,6 +86,28 @@ export const projectsApi = {
 
 // ============== Creditors API ==============
 
+export interface Report {
+  id: string
+  creditor_id: string
+  task_id: string
+  report_type: 'fact_check' | 'analysis' | 'final'
+  file_name: string
+  file_path: string
+  content_preview?: string
+  created_at: string
+}
+
+export interface Calculation {
+  id: string
+  creditor_id: string
+  calculation_type: string
+  principal: number
+  interest: number
+  total: number
+  parameters: Record<string, unknown>
+  created_at: string
+}
+
 export const creditorsApi = {
   async list(projectId: string, batchNumber?: number): Promise<Creditor[]> {
     try {
@@ -109,6 +131,24 @@ export const creditorsApi = {
   async create(data: CreditorCreate): Promise<Creditor> {
     try {
       const response = await api.post<Creditor>('/creditors', data)
+      return response.data
+    } catch (error) {
+      handleError(error as AxiosError)
+    }
+  },
+
+  async getReports(id: string): Promise<{ creditor_id: string; creditor_name: string; reports: Report[] }> {
+    try {
+      const response = await api.get<{ creditor_id: string; creditor_name: string; reports: Report[] }>(`/creditors/${id}/reports`)
+      return response.data
+    } catch (error) {
+      handleError(error as AxiosError)
+    }
+  },
+
+  async getCalculations(id: string): Promise<{ creditor_id: string; creditor_name: string; calculations: Calculation[] }> {
+    try {
+      const response = await api.get<{ creditor_id: string; creditor_name: string; calculations: Calculation[] }>(`/creditors/${id}/calculations`)
       return response.data
     } catch (error) {
       handleError(error as AxiosError)
@@ -182,6 +222,30 @@ export const toolsApi = {
   async calculateInterest(data: InterestCalculationRequest): Promise<InterestCalculationResponse> {
     try {
       const response = await api.post<InterestCalculationResponse>('/tools/calculate-interest', data)
+      return response.data
+    } catch (error) {
+      handleError(error as AxiosError)
+    }
+  }
+}
+
+// ============== Reports API ==============
+
+export const reportsApi = {
+  async get(id: string): Promise<Report> {
+    try {
+      const response = await api.get<Report>(`/reports/${id}`)
+      return response.data
+    } catch (error) {
+      handleError(error as AxiosError)
+    }
+  },
+
+  async downloadContent(id: string): Promise<Blob> {
+    try {
+      const response = await api.get(`/reports/${id}/content`, {
+        responseType: 'blob'
+      })
       return response.data
     } catch (error) {
       handleError(error as AxiosError)

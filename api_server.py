@@ -15,7 +15,8 @@ from app.api.routes import (
     projects_router,
     creditors_router,
     tasks_router,
-    tools_router
+    tools_router,
+    reports_router
 )
 
 # Configure logging
@@ -61,6 +62,7 @@ app.include_router(projects_router, prefix="/api")
 app.include_router(creditors_router, prefix="/api")
 app.include_router(tasks_router, prefix="/api")
 app.include_router(tools_router, prefix="/api")
+app.include_router(reports_router, prefix="/api")
 
 
 @app.get("/")
