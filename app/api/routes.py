@@ -5,7 +5,7 @@ API endpoints for the debt review system.
 Implements async task submission + polling pattern.
 """
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from typing import List, Optional
 from datetime import datetime, timedelta
 
@@ -17,6 +17,7 @@ from app.models.schemas import (
     TaskStatus, TaskStage
 )
 from app.core.database import db
+from app.core.auth import get_current_user, get_optional_user, AuthenticatedUser
 from app.services.task_runner import (
     submit_task, cancel_task, get_task_status, get_task_logs, TaskRunner
 )
@@ -32,8 +33,11 @@ tools_router = APIRouter(prefix="/tools", tags=["Tools"])
 # ============== Projects ==============
 
 @projects_router.post("", response_model=ProjectResponse)
-async def create_project(project: ProjectCreate):
-    """Create a new bankruptcy project."""
+async def create_project(
+    project: ProjectCreate,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """Create a new bankruptcy project. Requires authentication."""
     # Calculate interest stop date (bankruptcy date - 1 day)
     try:
         bankruptcy_dt = datetime.strptime(project.bankruptcy_date, "%Y-%m-%d")
@@ -67,8 +71,8 @@ async def create_project(project: ProjectCreate):
 
 
 @projects_router.get("", response_model=List[ProjectResponse])
-async def list_projects():
-    """List all projects."""
+async def list_projects(user: AuthenticatedUser = Depends(get_current_user)):
+    """List all projects. Requires authentication."""
     projects = db.list_projects()
     return [
         ProjectResponse(
@@ -86,8 +90,11 @@ async def list_projects():
 
 
 @projects_router.get("/{project_id}", response_model=ProjectResponse)
-async def get_project(project_id: str):
-    """Get a project by ID."""
+async def get_project(
+    project_id: str,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """Get a project by ID. Requires authentication."""
     project = db.get_project(project_id)
     if not project:
         raise HTTPException(404, "Project not found")
@@ -113,8 +120,11 @@ async def get_project(project_id: str):
 # ============== Creditors ==============
 
 @creditors_router.post("", response_model=CreditorResponse)
-async def create_creditor(creditor: CreditorCreate):
-    """Add a creditor to a project."""
+async def create_creditor(
+    creditor: CreditorCreate,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """Add a creditor to a project. Requires authentication."""
     # Verify project exists
     project = db.get_project(creditor.project_id)
     if not project:
@@ -152,8 +162,12 @@ async def create_creditor(creditor: CreditorCreate):
 
 
 @creditors_router.get("/project/{project_id}", response_model=List[CreditorResponse])
-async def list_creditors(project_id: str, batch_number: Optional[int] = None):
-    """List creditors for a project."""
+async def list_creditors(
+    project_id: str,
+    batch_number: Optional[int] = None,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """List creditors for a project. Requires authentication."""
     creditors = db.list_creditors(project_id, batch_number)
     return [
         CreditorResponse(
@@ -176,8 +190,11 @@ async def list_creditors(project_id: str, batch_number: Optional[int] = None):
 
 
 @creditors_router.get("/{creditor_id}", response_model=CreditorResponse)
-async def get_creditor(creditor_id: str):
-    """Get a creditor by ID."""
+async def get_creditor(
+    creditor_id: str,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """Get a creditor by ID. Requires authentication."""
     creditor = db.get_creditor(creditor_id)
     if not creditor:
         raise HTTPException(404, "Creditor not found")
@@ -202,9 +219,12 @@ async def get_creditor(creditor_id: str):
 # ============== Tasks ==============
 
 @tasks_router.post("", response_model=TaskSubmitResponse)
-async def submit_review_task(task: TaskCreate):
+async def submit_review_task(
+    task: TaskCreate,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
     """
-    Submit a debt review task for background processing.
+    Submit a debt review task for background processing. Requires authentication.
 
     Returns immediately with task ID. Poll /tasks/{task_id}/status for progress.
     """
@@ -228,9 +248,12 @@ async def submit_review_task(task: TaskCreate):
 
 
 @tasks_router.get("/{task_id}/status", response_model=TaskProgress)
-async def get_task_progress(task_id: str):
+async def get_task_progress(
+    task_id: str,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
     """
-    Get current task progress.
+    Get current task progress. Requires authentication.
 
     Frontend polls this endpoint to track progress.
     """
@@ -257,8 +280,11 @@ async def get_task_progress(task_id: str):
 
 
 @tasks_router.get("/{task_id}", response_model=TaskResponse)
-async def get_task(task_id: str):
-    """Get full task details."""
+async def get_task(
+    task_id: str,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """Get full task details. Requires authentication."""
     task = db.get_task(task_id)
     if not task:
         raise HTTPException(404, "Task not found")
@@ -279,8 +305,11 @@ async def get_task(task_id: str):
 
 
 @tasks_router.post("/{task_id}/cancel")
-async def cancel_review_task(task_id: str):
-    """Cancel a running task."""
+async def cancel_review_task(
+    task_id: str,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """Cancel a running task. Requires authentication."""
     success = await cancel_task(task_id)
     if not success:
         raise HTTPException(400, "Task not running or already completed")
@@ -289,15 +318,22 @@ async def cancel_review_task(task_id: str):
 
 
 @tasks_router.get("/{task_id}/logs")
-async def get_task_log_entries(task_id: str, limit: int = 100):
-    """Get detailed logs for a task."""
+async def get_task_log_entries(
+    task_id: str,
+    limit: int = 100,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """Get detailed logs for a task. Requires authentication."""
     logs = get_task_logs(task_id, limit=limit)
     return {"task_id": task_id, "logs": logs}
 
 
 @tasks_router.get("/project/{project_id}", response_model=List[TaskResponse])
-async def list_project_tasks(project_id: str):
-    """List all tasks for a project."""
+async def list_project_tasks(
+    project_id: str,
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """List all tasks for a project. Requires authentication."""
     tasks = db.list_tasks(project_id=project_id)
     return [
         TaskResponse(

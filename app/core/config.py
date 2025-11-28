@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     SUPABASE_ANON_KEY: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
 
+    # Clerk Authentication
+    CLERK_SECRET_KEY: str = ""
+    CLERK_PUBLISHABLE_KEY: str = ""
+
     # File Storage
     UPLOAD_DIR: str = "./uploads"
     OUTPUT_DIR: str = "./outputs"
@@ -39,7 +43,12 @@ class Settings(BaseSettings):
     TASK_POLL_INTERVAL_SECONDS: int = 5
 
     # CORS (for frontend)
-    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://debt.parallm.tech",
+        "https://debt-review.pages.dev"
+    ]
 
     class Config:
         env_file = ".env"

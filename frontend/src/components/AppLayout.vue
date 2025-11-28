@@ -6,6 +6,7 @@
  */
 import { ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import UserButton from '@/components/UserButton.vue'
 
 const route = useRoute()
 const isSidebarOpen = ref(true)
@@ -98,6 +99,7 @@ function isActive(path: string): boolean {
         </div>
         <div class="flex items-center gap-4">
           <slot name="header-actions" />
+          <UserButton />
         </div>
       </header>
 

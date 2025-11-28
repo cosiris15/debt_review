@@ -1,11 +1,26 @@
 /**
- * Vue Router Configuration
+ * Vue Router Configuration with Clerk Auth Guards
  */
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // Public routes (no auth required)
+    {
+      path: '/sign-in',
+      name: 'sign-in',
+      component: () => import('@/pages/SignInPage.vue'),
+      meta: { title: '登录', public: true }
+    },
+    {
+      path: '/sign-up',
+      name: 'sign-up',
+      component: () => import('@/pages/SignUpPage.vue'),
+      meta: { title: '注册', public: true }
+    },
+
+    // Protected routes (auth required)
     {
       path: '/',
       name: 'home',

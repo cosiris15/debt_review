@@ -3,6 +3,7 @@
  *
  * Handles all HTTP communication with the backend.
  * Includes automatic polling for long-running tasks.
+ * Automatically includes Clerk auth token in requests.
  */
 
 import axios, { type AxiosInstance, type AxiosError } from 'axios'
@@ -23,6 +24,24 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json'
   }
+})
+
+// Function to set auth token (called from auth composable)
+let getAuthToken: (() => Promise<string | null>) | null = null
+
+export function setAuthTokenGetter(getter: () => Promise<string | null>) {
+  getAuthToken = getter
+}
+
+// Request interceptor to add auth token
+api.interceptors.request.use(async (config) => {
+  if (getAuthToken) {
+    const token = await getAuthToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+  }
+  return config
 })
 
 // Error handler
