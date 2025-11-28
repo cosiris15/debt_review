@@ -1,0 +1,56 @@
+{
+  "creditor_info": {
+    "batch_number": "1",
+    "creditor_number": "003",
+    "creditor_name": "广林欧卡罗（广西）家居有限公司",
+    "processing_date": "20251119"
+  },
+  "paths": {
+    "base_directory": "/root/debt_review_skills/输出/第1批债权/003-广林欧卡罗（广西）家居有限公司",
+    "work_papers": "/root/debt_review_skills/输出/第1批债权/003-广林欧卡罗（广西）家居有限公司/工作底稿",
+    "final_reports": "/root/debt_review_skills/输出/第1批债权/003-广林欧卡罗（广西）家居有限公司/最终报告",
+    "calculation_files": "/root/debt_review_skills/输出/第1批债权/003-广林欧卡罗（广西）家居有限公司/计算文件",
+    "parallel_prompts": "/root/debt_review_skills/输出/第1批债权/003-广林欧卡罗（广西）家居有限公司/并行处理prompts"
+  },
+  "file_templates": {
+    "fact_check_report": "广林欧卡罗（广西）家居有限公司_事实核查报告.md",
+    "analysis_report": "广林欧卡罗（广西）家居有限公司_债权分析报告.md",
+    "final_review": "GY2025_广林欧卡罗（广西）家居有限公司_债权审查报告_20251119.md",
+    "file_inventory": "文件清单.md"
+  },
+  "project_config": {
+    "bankruptcy_date": "2025-09-16",
+    "interest_stop_date": "2025-09-16",
+    "debtor_name": "江苏熔盛重工有限公司"
+  },
+  "processing_metadata": {
+    "initialization": {
+      "timestamp": "2025-11-19T02:27:00.642799",
+      "material_statistics": {
+        "total_files": 0,
+        "total_size_kb": 0,
+        "large_files_count": 0
+      }
+    },
+    "stage1_fact_checking": {
+      "completed": false,
+      "scenario": null,
+      "strategy_used": null,
+      "material_statistics": {},
+      "completion_time": null,
+      "retry_count": 0
+    },
+    "stage2_debt_analysis": {
+      "completed": false,
+      "completion_time": null,
+      "calculation_files_generated": false,
+      "retry_count": 0
+    },
+    "stage3_report_organization": {
+      "completed": false,
+      "completion_time": null,
+      "format_compliance_verified": false,
+      "retry_count": 0
+    }
+  }
+}

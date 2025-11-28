@@ -1,0 +1,26 @@
+{
+  "creditor_info": {
+    "batch_number": "4",
+    "creditor_number": "4",
+    "creditor_name": "兴洋船舶",
+    "processing_date": "20251028"
+  },
+  "paths": {
+    "base_directory": "/root/debt_review_skills/输出/第4批债权/4-兴洋船舶",
+    "work_papers": "/root/debt_review_skills/输出/第4批债权/4-兴洋船舶/工作底稿",
+    "final_reports": "/root/debt_review_skills/输出/第4批债权/4-兴洋船舶/最终报告",
+    "calculation_files": "/root/debt_review_skills/输出/第4批债权/4-兴洋船舶/计算文件",
+    "parallel_prompts": "/root/debt_review_skills/输出/第4批债权/4-兴洋船舶/并行处理prompts"
+  },
+  "file_templates": {
+    "fact_check_report": "兴洋船舶_事实核查报告.md",
+    "analysis_report": "兴洋船舶_债权分析报告.md",
+    "final_review": "GY2025_兴洋船舶_债权审查报告_20251028.md",
+    "file_inventory": "文件清单.md"
+  },
+  "project_config": {
+    "bankruptcy_date": "2025-09-16",
+    "interest_stop_date": "2025-09-16",
+    "debtor_name": "江苏熔盛重工有限公司"
+  }
+}

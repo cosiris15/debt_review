@@ -1,0 +1,25 @@
+{
+  "creditor_info": {
+    "batch_number": "1",
+    "creditor_number": "145",
+    "creditor_name": "上海九梓环保节能技术有限公司",
+    "processing_date": "20250906"
+  },
+  "paths": {
+    "base_directory": "/root/debt_review_solution/输出/第1批债权/145-上海九梓环保节能技术有限公司",
+    "work_papers": "/root/debt_review_solution/输出/第1批债权/145-上海九梓环保节能技术有限公司/工作底稿",
+    "final_reports": "/root/debt_review_solution/输出/第1批债权/145-上海九梓环保节能技术有限公司/最终报告",
+    "calculation_files": "/root/debt_review_solution/输出/第1批债权/145-上海九梓环保节能技术有限公司/计算文件"
+  },
+  "file_templates": {
+    "fact_check_report": "上海九梓环保节能技术有限公司_事实核查报告.md",
+    "analysis_report": "上海九梓环保节能技术有限公司_债权分析报告.md",
+    "final_review": "GY2025_上海九梓环保节能技术有限公司_债权审查报告_20250906.md",
+    "file_inventory": "文件清单.md"
+  },
+  "project_config": {
+    "bankruptcy_date": "",
+    "interest_stop_date": "",
+    "debtor_name": ""
+  }
+}

@@ -1,0 +1,278 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+债权处理工作流控制器 (Debt Processing Workflow Controller)
+
+这个脚本用于统一管理债权审查的工作流程，确保：
+1. 标准化的目录结构创建
+2. 规范化的文件输出路径管理
+3. Agent间的协调执行
+4. 质量控制和验证
+"""
+
+import os
+import sys
+import json
+import configparser
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+class DebtProcessingController:
+    """债权处理工作流控制器"""
+    
+    def __init__(self, project_root: str = "/root/debt_review_solution"):
+        self.project_root = Path(project_root)
+        self.output_root = self.project_root / "输出"
+        self.config_file = self.project_root / "project_config.ini"
+        
+        # 加载项目配置
+        self.config = self._load_project_config()
+        
+    def _load_project_config(self) -> configparser.ConfigParser:
+        """加载项目配置文件"""
+        config = configparser.ConfigParser()
+        if self.config_file.exists():
+            config.read(self.config_file, encoding='utf-8')
+        else:
+            print(f"⚠️  警告：项目配置文件不存在 {self.config_file}")
+        return config
+    
+    def create_creditor_directory(self, batch_number: str, creditor_number: str, 
+                                creditor_name: str) -> Path:
+        """创建债权人标准目录结构
+        
+        Args:
+            batch_number: 批次号（如：1）
+            creditor_number: 债权人编号（如：115）
+            creditor_name: 债权人名称（如：慈溪市东航建筑起重机械安装队）
+            
+        Returns:
+            Path: 债权人基础目录路径
+        """
+        # 构建目录路径
+        base_dir = self.output_root / f"第{batch_number}批债权" / f"{creditor_number}-{creditor_name}"
+        
+        # 创建标准子目录
+        subdirs = ["工作底稿", "最终报告", "计算文件"]
+        
+        for subdir in subdirs:
+            subdir_path = base_dir / subdir
+            subdir_path.mkdir(parents=True, exist_ok=True)
+            print(f"✓ 创建目录: {subdir_path}")
+        
+        return base_dir
+    
+    def generate_processing_config(self, batch_number: str, creditor_number: str,
+                                 creditor_name: str) -> Dict:
+        """为特定债权人生成处理配置
+        
+        Args:
+            batch_number: 批次号
+            creditor_number: 债权人编号
+            creditor_name: 债权人名称
+            
+        Returns:
+            Dict: 处理配置信息
+        """
+        base_path = self.output_root / f"第{batch_number}批债权" / f"{creditor_number}-{creditor_name}"
+        current_date = datetime.now().strftime("%Y%m%d")
+        
+        config = {
+            "creditor_info": {
+                "batch_number": batch_number,
+                "creditor_number": creditor_number,
+                "creditor_name": creditor_name,
+                "processing_date": current_date
+            },
+            "paths": {
+                "base_directory": str(base_path),
+                "work_papers": str(base_path / "工作底稿"),
+                "final_reports": str(base_path / "最终报告"),
+                "calculation_files": str(base_path / "计算文件")
+            },
+            "file_templates": {
+                "fact_check_report": f"{creditor_name}_事实核查报告.md",
+                "analysis_report": f"{creditor_name}_债权分析报告.md",
+                "final_review": f"GY2025_{creditor_name}_债权审查报告_{current_date}.md",
+                "file_inventory": "文件清单.md"
+            },
+            "project_config": {
+                "bankruptcy_date": self.config.get("关键日期", "破产受理日期", fallback=""),
+                "interest_stop_date": self.config.get("关键日期", "停止计息日期", fallback=""),
+                "debtor_name": self.config.get("项目基本信息", "债务人名称", fallback="")
+            }
+        }
+        
+        return config
+    
+    def save_processing_config(self, config: Dict) -> Path:
+        """保存处理配置到文件
+        
+        Args:
+            config: 处理配置字典
+            
+        Returns:
+            Path: 配置文件路径
+        """
+        base_path = Path(config["paths"]["base_directory"])
+        config_file = base_path / ".processing_config.json"
+        
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+        
+        print(f"✓ 保存处理配置: {config_file}")
+        return config_file
+    
+    def validate_directory_structure(self, base_path: Path) -> bool:
+        """验证目录结构完整性
+        
+        Args:
+            base_path: 债权人基础目录路径
+            
+        Returns:
+            bool: 验证结果
+        """
+        required_dirs = ["工作底稿", "最终报告", "计算文件"]
+        
+        for dir_name in required_dirs:
+            dir_path = base_path / dir_name
+            if not dir_path.exists():
+                print(f"❌ 缺少目录: {dir_path}")
+                return False
+            elif not dir_path.is_dir():
+                print(f"❌ 路径不是目录: {dir_path}")
+                return False
+        
+        print(f"✓ 目录结构验证通过: {base_path}")
+        return True
+    
+    def check_file_placement(self, config: Dict) -> Dict:
+        """检查文件放置情况
+        
+        Args:
+            config: 处理配置
+            
+        Returns:
+            Dict: 检查结果
+        """
+        base_path = Path(config["paths"]["base_directory"])
+        creditor_name = config["creditor_info"]["creditor_name"]
+        
+        check_results = {
+            "fact_check_report": False,
+            "analysis_report": False,
+            "calculation_files": [],
+            "final_report": False,
+            "file_inventory": False
+        }
+        
+        # 检查事实核查报告
+        fact_check_path = base_path / "工作底稿" / f"{creditor_name}_事实核查报告.md"
+        check_results["fact_check_report"] = fact_check_path.exists()
+        
+        # 检查债权分析报告
+        analysis_path = base_path / "工作底稿" / f"{creditor_name}_债权分析报告.md"
+        check_results["analysis_report"] = analysis_path.exists()
+        
+        # 检查计算文件
+        calc_dir = base_path / "计算文件"
+        if calc_dir.exists():
+            calc_files = [f for f in calc_dir.iterdir() if f.is_file()]
+            check_results["calculation_files"] = [str(f) for f in calc_files]
+        
+        # 检查最终报告
+        current_date = datetime.now().strftime("%Y%m%d")
+        final_report_path = base_path / "最终报告" / f"GY2025_{creditor_name}_债权审查报告_{current_date}.md"
+        check_results["final_report"] = final_report_path.exists()
+        
+        # 检查文件清单
+        inventory_path = base_path / "文件清单.md"
+        check_results["file_inventory"] = inventory_path.exists()
+        
+        return check_results
+    
+    def initialize_creditor_processing(self, batch_number: str, creditor_number: str,
+                                     creditor_name: str) -> Tuple[Path, Dict]:
+        """初始化债权人处理环境
+        
+        Args:
+            batch_number: 批次号
+            creditor_number: 债权人编号
+            creditor_name: 债权人名称
+            
+        Returns:
+            Tuple[Path, Dict]: 基础目录路径和配置信息
+        """
+        print(f"\n🚀 初始化债权人处理环境")
+        print(f"   批次: 第{batch_number}批")
+        print(f"   编号: {creditor_number}")
+        print(f"   名称: {creditor_name}")
+        
+        # 创建目录结构
+        base_path = self.create_creditor_directory(batch_number, creditor_number, creditor_name)
+        
+        # 生成处理配置
+        config = self.generate_processing_config(batch_number, creditor_number, creditor_name)
+        
+        # 保存配置文件
+        self.save_processing_config(config)
+        
+        # 验证目录结构
+        if self.validate_directory_structure(base_path):
+            print(f"✅ 债权人处理环境初始化完成")
+        else:
+            print(f"❌ 债权人处理环境初始化失败")
+            return None, None
+        
+        return base_path, config
+    
+    def print_workflow_summary(self, config: Dict):
+        """打印工作流程摘要
+        
+        Args:
+            config: 处理配置
+        """
+        print(f"\n📋 工作流程摘要")
+        print(f"   基础目录: {config['paths']['base_directory']}")
+        print(f"   工作底稿: {config['paths']['work_papers']}")
+        print(f"   计算文件: {config['paths']['calculation_files']}")
+        print(f"   最终报告: {config['paths']['final_reports']}")
+        print(f"\n📝 预期文件:")
+        print(f"   事实核查: {config['file_templates']['fact_check_report']}")
+        print(f"   债权分析: {config['file_templates']['analysis_report']}")
+        print(f"   审查意见: {config['file_templates']['final_review']}")
+        print(f"   文件清单: {config['file_templates']['file_inventory']}")
+
+def main():
+    """主函数 - 命令行接口"""
+    if len(sys.argv) != 4:
+        print("用法: python 债权处理工作流控制器.py <批次号> <债权人编号> <债权人名称>")
+        print("示例: python 债权处理工作流控制器.py 1 115 慈溪市东航建筑起重机械安装队")
+        sys.exit(1)
+    
+    batch_number = sys.argv[1]
+    creditor_number = sys.argv[2]
+    creditor_name = sys.argv[3]
+    
+    controller = DebtProcessingController()
+    
+    # 初始化处理环境
+    base_path, config = controller.initialize_creditor_processing(
+        batch_number, creditor_number, creditor_name
+    )
+    
+    if base_path and config:
+        controller.print_workflow_summary(config)
+        print(f"\n✅ 环境准备完成，可以开始债权审查流程")
+        print(f"   请按照以下顺序执行Agent:")
+        print(f"   1. debt-fact-checker (事实核查员)")
+        print(f"   2. debt-claim-analyzer (债权分析员)")
+        print(f"   3. report-organizer (报告整理员)")
+    else:
+        print(f"❌ 环境初始化失败")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
