@@ -71,3 +71,6 @@ outputs/
 # LangGraph Studio
 .langgraph/
 .langgraph_api/
+
+# Test/Sample PDF files
+*.pdf
