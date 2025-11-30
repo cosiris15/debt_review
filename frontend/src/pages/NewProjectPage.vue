@@ -1,14 +1,22 @@
 <script setup lang="ts">
 /**
  * New Project Page
+ *
+ * 支持两种创建方式：
+ * 1. 手动填写表单
+ * 2. 上传裁定书自动提取信息
  */
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/project'
+import RulingUpload from '@/components/RulingUpload.vue'
+import type { ParsedProjectInfo } from '@/api/client'
+import { Sparkles, FileText, ChevronDown, ChevronUp, CheckCircle } from 'lucide-vue-next'
 
 const router = useRouter()
 const projectStore = useProjectStore()
 
+// 表单数据
 const form = ref({
   name: '',
   debtor_name: '',
@@ -16,8 +24,46 @@ const form = ref({
   description: ''
 })
 
+// 状态
 const loading = ref(false)
 const error = ref('')
+const showRulingUpload = ref(false)
+const parsedInfo = ref<ParsedProjectInfo | null>(null)
+
+// 是否已从裁定书提取信息
+const hasExtractedInfo = computed(() => parsedInfo.value !== null)
+
+// 处理裁定书解析结果
+function handleRulingParsed(info: ParsedProjectInfo) {
+  parsedInfo.value = info
+  showRulingUpload.value = false
+
+  // 自动填充表单
+  form.value.debtor_name = info.debtor_name
+  form.value.bankruptcy_date = info.bankruptcy_date
+
+  // 自动生成项目名称
+  if (info.case_number) {
+    form.value.name = `${info.debtor_name}破产清算案`
+  }
+
+  // 添加备注
+  const notes: string[] = []
+  if (info.case_number) notes.push(`案号：${info.case_number}`)
+  if (info.court_name) notes.push(`法院：${info.court_name}`)
+  if (notes.length > 0) {
+    form.value.description = notes.join('\n')
+  }
+}
+
+// 清除已提取的信息
+function clearExtractedInfo() {
+  parsedInfo.value = null
+  form.value.name = ''
+  form.value.debtor_name = ''
+  form.value.bankruptcy_date = ''
+  form.value.description = ''
+}
 
 async function handleSubmit() {
   if (!form.value.name || !form.value.debtor_name || !form.value.bankruptcy_date) {
@@ -50,7 +96,59 @@ async function handleSubmit() {
         ← 返回
       </button>
       <h1 class="text-2xl font-bold text-gray-800">创建新项目</h1>
-      <p class="text-gray-600 mt-1">填写破产项目的基本信息</p>
+      <p class="text-gray-600 mt-1">填写破产项目的基本信息，或上传裁定书自动提取</p>
+    </div>
+
+    <!-- 智能提取区域 -->
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+      <!-- 标题栏（可折叠） -->
+      <button
+        type="button"
+        @click="showRulingUpload = !showRulingUpload"
+        class="w-full flex items-center justify-between"
+      >
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+            <Sparkles class="w-5 h-5 text-purple-600" />
+          </div>
+          <div class="text-left">
+            <h3 class="font-semibold text-gray-800">智能提取</h3>
+            <p class="text-sm text-gray-500">上传裁定书，AI 自动填写表单</p>
+          </div>
+        </div>
+        <component
+          :is="showRulingUpload ? ChevronUp : ChevronDown"
+          class="w-5 h-5 text-gray-400"
+        />
+      </button>
+
+      <!-- 已提取信息提示 -->
+      <div
+        v-if="hasExtractedInfo && !showRulingUpload"
+        class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200"
+      >
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <CheckCircle class="w-5 h-5 text-green-600" />
+            <span class="text-green-800 text-sm">已从裁定书提取信息，表单已自动填写</span>
+          </div>
+          <button
+            type="button"
+            @click="clearExtractedInfo"
+            class="text-sm text-green-600 hover:text-green-800"
+          >
+            清除
+          </button>
+        </div>
+      </div>
+
+      <!-- 裁定书上传组件 -->
+      <div v-if="showRulingUpload" class="mt-4 pt-4 border-t">
+        <RulingUpload
+          @parsed="handleRulingParsed"
+          @cancel="showRulingUpload = false"
+        />
+      </div>
     </div>
 
     <!-- Form -->

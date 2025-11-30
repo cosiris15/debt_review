@@ -10,16 +10,26 @@ import UserButton from '@/components/UserButton.vue'
 
 const route = useRoute()
 const isSidebarOpen = ref(true)
+const showSettingsDropdown = ref(false)
 
+// 主导航项（计算器已移至设置菜单）
 const navItems = [
   { path: '/', label: '首页', icon: 'home' },
   { path: '/projects', label: '项目管理', icon: 'folder' },
-  { path: '/calculator', label: '利息计算器', icon: 'calculator' },
+]
+
+// 设置/高级功能菜单项
+const settingsItems = [
+  { path: '/calculator', label: '利息计算器', icon: 'calculator', description: '独立计算利息工具' },
 ]
 
 function isActive(path: string): boolean {
   if (path === '/') return route.path === '/'
   return route.path.startsWith(path)
+}
+
+function isSettingsActive(): boolean {
+  return settingsItems.some(item => route.path.startsWith(item.path))
 }
 </script>
 
@@ -44,24 +54,76 @@ function isActive(path: string): boolean {
       </div>
 
       <!-- Navigation -->
-      <nav class="p-4">
-        <RouterLink
-          v-for="item in navItems"
-          :key="item.path"
-          :to="item.path"
-          :class="[
-            'flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors',
-            isActive(item.path)
-              ? 'bg-primary-50 text-primary-700'
-              : 'text-gray-600 hover:bg-gray-100'
-          ]"
-        >
-          <!-- Icons (simplified) -->
-          <span class="text-xl">
-            {{ item.icon === 'home' ? '🏠' : item.icon === 'folder' ? '📁' : '🧮' }}
-          </span>
-          <span v-if="isSidebarOpen">{{ item.label }}</span>
-        </RouterLink>
+      <nav class="p-4 flex flex-col h-[calc(100%-4rem)]">
+        <!-- 主导航项 -->
+        <div class="flex-1">
+          <RouterLink
+            v-for="item in navItems"
+            :key="item.path"
+            :to="item.path"
+            :class="[
+              'flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors',
+              isActive(item.path)
+                ? 'bg-primary-50 text-primary-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            ]"
+          >
+            <!-- Icons (simplified) -->
+            <span class="text-xl">
+              {{ item.icon === 'home' ? '🏠' : '📁' }}
+            </span>
+            <span v-if="isSidebarOpen">{{ item.label }}</span>
+          </RouterLink>
+        </div>
+
+        <!-- 设置菜单（底部） -->
+        <div class="relative border-t pt-4 mt-4">
+          <button
+            @click="showSettingsDropdown = !showSettingsDropdown"
+            :class="[
+              'flex items-center gap-3 px-4 py-3 rounded-lg w-full transition-colors',
+              isSettingsActive()
+                ? 'bg-primary-50 text-primary-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            ]"
+          >
+            <span class="text-xl">⚙️</span>
+            <span v-if="isSidebarOpen">设置</span>
+            <svg
+              v-if="isSidebarOpen"
+              class="w-4 h-4 ml-auto transition-transform"
+              :class="{ 'rotate-180': showSettingsDropdown }"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <!-- 设置下拉菜单 -->
+          <div
+            v-if="showSettingsDropdown && isSidebarOpen"
+            class="mt-1 bg-white rounded-lg border shadow-lg overflow-hidden"
+          >
+            <RouterLink
+              v-for="item in settingsItems"
+              :key="item.path"
+              :to="item.path"
+              @click="showSettingsDropdown = false"
+              :class="[
+                'block px-4 py-3 hover:bg-gray-50 transition-colors',
+                isActive(item.path) ? 'bg-primary-50' : ''
+              ]"
+            >
+              <div class="flex items-center gap-2">
+                <span>🧮</span>
+                <span class="font-medium text-gray-800">{{ item.label }}</span>
+              </div>
+              <div class="text-xs text-gray-500 mt-1 ml-6">{{ item.description }}</div>
+            </RouterLink>
+          </div>
+        </div>
       </nav>
 
       <!-- Toggle button -->

@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com/v1"
     DEEPSEEK_MODEL: str = "deepseek-chat"
 
+    # Anthropic API (for intelligent parsing with Claude)
+    ANTHROPIC_API_KEY: str = ""
+
+    # Aliyun Dashscope API (for qwen-vl-ocr)
+    DASHSCOPE_API_KEY: str = ""
+    QWEN_OCR_MODEL: str = "qwen-vl-ocr-2025-11-20"
+
     # Supabase
     SUPABASE_URL: str = ""
     SUPABASE_ANON_KEY: str = ""

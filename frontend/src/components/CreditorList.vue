@@ -11,7 +11,8 @@ import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/stores/project'
 import { CreditorStatus } from '@/types'
 import type { CreditorCreate } from '@/types'
-import { Plus, Upload, X, ExternalLink } from 'lucide-vue-next'
+import { Plus, Upload, X, ExternalLink, Sparkles } from 'lucide-vue-next'
+import SmartImportModal from './SmartImportModal.vue'
 
 const router = useRouter()
 
@@ -29,6 +30,7 @@ const emit = defineEmits<{
 // Form state
 const showAddForm = ref(false)
 const showBatchImport = ref(false)
+const showSmartImport = ref(false)  // 智能导入弹窗
 const isSubmitting = ref(false)
 const formError = ref<string | null>(null)
 
@@ -244,10 +246,18 @@ function formatAmount(amount?: number): string {
         </button>
         <button
           @click="showBatchImport = true; formError = null"
-          class="flex items-center gap-1 px-3 py-1.5 text-sm border border-primary-500 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
+          class="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
         >
           <Upload class="w-4 h-4" />
           批量导入
+        </button>
+        <!-- 智能导入按钮（突出显示） -->
+        <button
+          @click="showSmartImport = true"
+          class="flex items-center gap-1 px-3 py-1.5 text-sm bg-gradient-to-r from-purple-500 to-primary-500 text-white rounded-lg hover:from-purple-600 hover:to-primary-600 transition-all shadow-sm"
+        >
+          <Sparkles class="w-4 h-4" />
+          智能导入
         </button>
       </div>
     </div>
@@ -496,5 +506,13 @@ function formatAmount(amount?: number): string {
         开始处理 ({{ selectedCreditors.length }})
       </button>
     </div>
+
+    <!-- 智能导入弹窗 -->
+    <SmartImportModal
+      v-if="showSmartImport"
+      :project-id="projectId"
+      @close="showSmartImport = false"
+      @success="(count) => { showSmartImport = false; projectStore.fetchCreditors(projectId) }"
+    />
   </div>
 </template>

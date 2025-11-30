@@ -76,11 +76,21 @@ function formatDate(date: string): string {
             <h1 class="text-2xl font-bold text-gray-800">{{ currentProject.name }}</h1>
             <p class="text-gray-600 mt-1">{{ currentProject.debtor_name }}</p>
           </div>
-          <div class="text-right">
-            <div class="text-sm text-gray-500">破产受理日期</div>
-            <div class="font-semibold text-gray-800">{{ formatDate(currentProject.bankruptcy_date) }}</div>
-            <div class="text-xs text-gray-400 mt-1">
-              停止计息: {{ formatDate(currentProject.interest_stop_date) }}
+          <div class="flex flex-col items-end">
+            <!-- 锁定标识：项目创建后基本信息不可修改 -->
+            <div
+              class="flex items-center gap-1 text-gray-400 text-sm mb-3 cursor-help"
+              title="项目创建后基本信息不可修改"
+            >
+              <span>🔒</span>
+              <span>已锁定</span>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-gray-500">破产受理日期</div>
+              <div class="font-semibold text-gray-800">{{ formatDate(currentProject.bankruptcy_date) }}</div>
+              <div class="text-xs text-gray-400 mt-1">
+                停止计息: {{ formatDate(currentProject.interest_stop_date) }}
+              </div>
             </div>
           </div>
         </div>

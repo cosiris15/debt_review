@@ -317,6 +317,79 @@ export class TaskPoller {
   }
 }
 
+// ============== Parse API ==============
+
+export interface ParsedCreditor {
+  creditor_name: string
+  declared_amount?: number
+  source_file: string
+  batch_number: number
+  creditor_number: number
+  confidence: number
+}
+
+export interface MaterialParseResponse {
+  creditors: ParsedCreditor[]
+  confidence: number
+  warnings: string[]
+  file_count: number
+}
+
+// 裁定书解析结果类型
+export interface ParsedProjectInfo {
+  case_number: string        // 案号
+  debtor_name: string        // 债务人名称
+  bankruptcy_date: string    // 破产受理日期 (YYYY-MM-DD)
+  court_name?: string        // 法院名称
+  confidence?: number        // 置信度 0-1
+}
+
+export const parseApi = {
+  /**
+   * 解析上传的债权申报材料，使用 LLM 提取债权人信息
+   */
+  async parseMaterials(projectId: string, files: File[]): Promise<MaterialParseResponse> {
+    const formData = new FormData()
+    formData.append('project_id', projectId)
+
+    files.forEach(file => {
+      formData.append('files', file)
+    })
+
+    try {
+      const response = await api.post<MaterialParseResponse>('/parse/materials', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        timeout: 120000  // 2 分钟超时（LLM 处理需要时间）
+      })
+      return response.data
+    } catch (error) {
+      handleError(error as AxiosError)
+    }
+  },
+
+  /**
+   * 解析裁定书 PDF，提取项目基本信息
+   */
+  async parseRuling(file: File): Promise<ParsedProjectInfo> {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const response = await api.post<ParsedProjectInfo>('/parse/ruling', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        timeout: 60000  // 1 分钟超时
+      })
+      return response.data
+    } catch (error) {
+      handleError(error as AxiosError)
+    }
+  }
+}
+
 // ============== Health Check ==============
 
 export async function checkHealth(): Promise<{ status: string; services: Record<string, string> }> {

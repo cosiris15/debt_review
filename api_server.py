@@ -18,6 +18,7 @@ from app.api.routes import (
     tools_router,
     reports_router
 )
+from app.api.parse_routes import parse_router
 
 # Configure logging
 logging.basicConfig(
@@ -63,6 +64,7 @@ app.include_router(creditors_router, prefix="/api")
 app.include_router(tasks_router, prefix="/api")
 app.include_router(tools_router, prefix="/api")
 app.include_router(reports_router, prefix="/api")
+app.include_router(parse_router, prefix="/api")
 
 
 @app.get("/")
