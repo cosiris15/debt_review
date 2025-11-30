@@ -1,0 +1,28 @@
+module:
+  id: calculations
+  name: 计算知识
+  description: 利息计算相关知识，包含LPR利率表、计算公式、计算器使用指南
+
+loading_strategy:
+  eager: false
+  cache: true
+  cache_ttl: 300  # LPR数据缓存5分钟
+
+files:
+  - id: lpr_rates
+    path: lpr_rates.yaml
+    priority: 1
+    required: true
+    description: LPR贷款市场报价利率历史数据表
+
+  - id: formulas
+    path: formulas.md
+    priority: 2
+    required: true
+    description: 利息计算公式详解
+
+  - id: calculator_guide
+    path: calculator_guide.md
+    priority: 3
+    required: false
+    description: 计算器工具使用指南

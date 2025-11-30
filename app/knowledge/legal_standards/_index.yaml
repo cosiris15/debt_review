@@ -1,0 +1,82 @@
+module:
+  id: legal_standards
+  name: 进阶法律标准
+  description: 复杂案件和疑难法律问题的进阶审查标准，仅用于10%的特殊情况
+
+loading_strategy:
+  eager: false
+  cache: true
+  cache_ttl: 120  # 法律标准变化少，缓存久一些
+
+files:
+  - id: overview
+    path: overview.md
+    priority: 1
+    required: true
+    description: 进阶法律标准总览和使用指南
+
+  - id: 01_subject_evidence
+    path: 01_subject_evidence.md
+    priority: 10
+    required: false
+    description: 主体资格、举证责任、诉讼时效
+
+  - id: 02_litigation_claims
+    path: 02_litigation_claims.md
+    priority: 11
+    required: false
+    description: 涉诉债权处理标准
+
+  - id: 03_interest_calculation
+    path: 03_interest_calculation.md
+    priority: 12
+    required: false
+    description: 利息计算进阶标准
+
+  - id: 04_financial_institution
+    path: 04_financial_institution.md
+    priority: 13
+    required: false
+    description: 金融机构债权标准
+
+  - id: 05_private_lending
+    path: 05_private_lending.md
+    priority: 14
+    required: false
+    description: 民间借贷标准
+
+  - id: 06_secured_claims
+    path: 06_secured_claims.md
+    priority: 15
+    required: false
+    description: 担保债权标准
+
+  - id: 07_special_claims
+    path: 07_special_claims.md
+    priority: 16
+    required: false
+    description: 特殊债权类型（融资租赁、保理、建设工程）
+
+  - id: 08_employee_claims
+    path: 08_employee_claims.md
+    priority: 17
+    required: false
+    description: 劳动债权标准
+
+  - id: 09_other_matters
+    path: 09_other_matters.md
+    priority: 18
+    required: false
+    description: 其他事项（抵销权、管辖权等）
+
+  - id: 10_guarantee_analysis
+    path: 10_guarantee_analysis.md
+    priority: 19
+    required: false
+    description: 保证担保效力深度分析
+
+  - id: 11_mortgage_analysis
+    path: 11_mortgage_analysis.md
+    priority: 20
+    required: false
+    description: 抵押权效力深度分析

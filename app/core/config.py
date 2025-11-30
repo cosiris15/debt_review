@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     MAX_CONCURRENT_TASKS: int = 3
     TASK_POLL_INTERVAL_SECONDS: int = 5
 
+    # Knowledge Management
+    USE_DYNAMIC_KNOWLEDGE: bool = True  # Enable dynamic knowledge loading from files
+    KNOWLEDGE_CACHE_TTL_SECONDS: int = 60  # Cache TTL for hot-reload support
+
     # CORS (for frontend)
     CORS_ORIGINS: list[str] = [
         "http://localhost:5173",
@@ -50,10 +54,16 @@ class Settings(BaseSettings):
         "https://debt-review.pages.dev"
     ]
 
+    # LangSmith Configuration (for LangGraph Studio)
+    LANGSMITH_API_KEY: Optional[str] = None
+    LANGSMITH_TRACING: bool = False
+    LANGSMITH_PROJECT: str = "debt-review-dev"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
+        extra = "ignore"  # Allow extra env vars
 
 
 @lru_cache()

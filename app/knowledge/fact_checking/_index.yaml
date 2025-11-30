@@ -1,0 +1,64 @@
+module:
+  id: fact_checking
+  name: 事实核查
+  description: 事实核查阶段的工作流程、指南和模板
+
+loading_strategy:
+  eager: false
+  cache: true
+  cache_ttl: 60
+
+files:
+  - id: workflow
+    path: workflow.md
+    priority: 1
+    required: true
+    description: 事实核查工作流程主文档
+
+  - id: declaration_extraction
+    path: declaration_extraction.md
+    priority: 2
+    required: true
+    description: 申报信息提取指南
+
+  - id: evidence_classification
+    path: evidence_classification.md
+    priority: 3
+    required: true
+    description: 证据分类和事实建立指南
+
+  - id: quality_checklist
+    path: quality_checklist.md
+    priority: 4
+    required: false
+    description: 质量检查清单
+
+  - id: batch_processing
+    path: batch_processing.md
+    priority: 5
+    required: false
+    description: 大批量材料处理指南
+
+  - id: incremental_processing
+    path: incremental_processing.md
+    priority: 6
+    required: false
+    description: 增量处理指南
+
+  - id: mermaid_diagrams
+    path: mermaid_diagrams.md
+    priority: 7
+    required: false
+    description: 法律关系图生成指南
+
+  - id: claim_preprocessing
+    path: claim_preprocessing.md
+    priority: 8
+    required: false
+    description: 债权预处理指南
+
+  - id: syndicated_loan_guide
+    path: syndicated_loan_guide.md
+    priority: 2
+    required: true
+    description: 银团贷款债权审查指南

@@ -2,9 +2,15 @@
 LangGraph State Definitions
 
 Defines the state structure that flows through the debt review workflow.
+
+Key Design:
+- InputState: What users provide to start a workflow (minimal required fields)
+- WorkflowState: Full internal state with all tracking fields (has defaults)
+- OutputState: What users see as the result (subset of WorkflowState)
 """
 
 from typing import TypedDict, Optional, List, Dict, Any, Annotated
+from typing_extensions import NotRequired
 from datetime import datetime
 from enum import Enum
 import operator
@@ -14,12 +20,79 @@ class WorkflowStage(str, Enum):
     """Stages in the debt review workflow."""
     INIT = "init"
     FACT_CHECK = "fact_check"
+    LEGAL_DIAGRAM = "legal_diagram"  # 法律关系图生成阶段
     ANALYSIS = "analysis"
     REPORT = "report"
     VALIDATION = "validation"
     COMPLETE = "complete"
     ERROR = "error"
 
+
+# ============================================================
+# Input State - What users provide to start a workflow
+# ============================================================
+
+class CreditorInput(TypedDict, total=False):
+    """Minimal creditor info needed to start processing."""
+    creditor_name: str  # Required
+    materials_path: str  # Required - path to claim materials
+    # Optional fields
+    creditor_id: str
+    batch_number: int
+    creditor_number: int
+    declared_principal: float
+    declared_interest: float
+    declared_total: float
+    output_path: str
+
+
+class InputState(TypedDict):
+    """
+    Input schema for starting a workflow.
+
+    This is what LangGraph Studio will show as required inputs.
+    Only includes fields that users must provide to start processing.
+    """
+    # Required: Basic project info
+    debtor_name: str
+    bankruptcy_date: str  # Format: YYYY-MM-DD
+
+    # Required: List of creditors to process
+    creditors: List[CreditorInput]
+
+    # Optional fields (with defaults applied in workflow)
+    # Using NotRequired so LangGraph Studio shows them as optional
+    task_id: NotRequired[str]
+    project_id: NotRequired[str]
+    interest_stop_date: NotRequired[str]
+
+
+# ============================================================
+# Output State - What users see as result
+# ============================================================
+
+class OutputState(TypedDict):
+    """
+    Output schema - what the workflow returns.
+
+    Simplified view of results for the user.
+    """
+    # Status
+    success: bool
+    error_message: Optional[str]
+
+    # Results per creditor
+    results: List[Dict[str, Any]]  # [{creditor_name, confirmed_total, reports...}]
+
+    # Summary
+    total_creditors: int
+    completed_creditors: int
+    total_confirmed_amount: float
+
+
+# ============================================================
+# Internal Creditor State (full tracking)
+# ============================================================
 
 class CreditorState(TypedDict):
     """State for a single creditor being processed."""
@@ -51,8 +124,12 @@ class CreditorState(TypedDict):
 
     # Generated content
     fact_check_report: Optional[str]  # Markdown content
+    legal_diagram: Optional[str]  # 法律关系图Markdown内容
     analysis_report: Optional[str]
     final_report: Optional[str]
+
+    # 法律关系图生成标志
+    should_generate_diagram: bool  # 是否需要生成法律关系图
 
     # Calculation results
     calculations: List[Dict[str, Any]]
@@ -150,11 +227,14 @@ def create_initial_state(
             stage_completed={
                 "init": False,
                 "fact_check": False,
+                "legal_diagram": False,
                 "analysis": False,
                 "report": False,
                 "validation": False
             },
             fact_check_report=None,
+            legal_diagram=None,
+            should_generate_diagram=False,
             analysis_report=None,
             final_report=None,
             calculations=[],
@@ -200,7 +280,7 @@ def calculate_progress(state: WorkflowState) -> int:
         return 0
 
     creditor_weight = 100 / state["total_creditors"]
-    stage_weight = creditor_weight / 5  # 5 stages per creditor
+    stage_weight = creditor_weight / 6  # 6 stages per creditor (including legal_diagram)
 
     total_progress = 0
 

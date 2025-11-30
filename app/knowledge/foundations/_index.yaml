@@ -1,0 +1,40 @@
+module:
+  id: foundations
+  name: 基础知识
+  description: 债权审查基础知识，包含核心原则、证据层级、债权分类等，适用于所有审查阶段
+
+loading_strategy:
+  eager: false
+  cache: true
+  cache_ttl: 60
+
+files:
+  - id: core_principles
+    path: core_principles.md
+    priority: 1
+    required: true
+    description: 核心审查原则（就低原则、就无原则、证据支持规则）
+
+  - id: evidence_hierarchy
+    path: evidence_hierarchy.md
+    priority: 2
+    required: true
+    description: 证据层级规则
+
+  - id: debt_classification
+    path: debt_classification.md
+    priority: 3
+    required: true
+    description: 债权分类标准（按优先级、按性质、按法律关系）
+
+  - id: critical_dates
+    path: critical_dates.md
+    priority: 4
+    required: true
+    description: 关键日期定义（破产受理日、停止计息日）
+
+  - id: quality_standards
+    path: quality_standards.md
+    priority: 5
+    required: false
+    description: 质量检查标准和常见错误预防

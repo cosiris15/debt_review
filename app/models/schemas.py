@@ -25,10 +25,12 @@ class TaskStage(str, Enum):
     """Workflow stage for debt review."""
     INIT = "init"                 # Environment initialization
     FACT_CHECK = "fact_check"     # Stage 1: Fact checking
-    ANALYSIS = "analysis"         # Stage 2: Debt analysis
-    REPORT = "report"             # Stage 3: Report organization
+    LEGAL_DIAGRAM = "legal_diagram"  # Stage 2: Legal relationship diagram (新增)
+    ANALYSIS = "analysis"         # Stage 3: Debt analysis
+    REPORT = "report"             # Stage 4: Report organization
     VALIDATION = "validation"     # Quality validation
     COMPLETE = "complete"         # All stages done
+    ERROR = "error"               # Error state (新增)
 
 
 class CreditorStatus(str, Enum):
@@ -138,13 +140,32 @@ class TaskSubmitResponse(BaseModel):
 
 class InterestCalculationRequest(BaseModel):
     """Request for interest calculation."""
-    calculation_type: str = Field(..., description="simple, lpr, delay, compound, penalty")
-    principal: float = Field(..., gt=0)
-    start_date: str = Field(..., description="YYYY-MM-DD")
-    end_date: str = Field(..., description="YYYY-MM-DD")
+    calculation_type: str = Field(
+        ...,
+        description="simple, lpr, delay, compound, penalty, share_ratio, confirmed, max_limit"
+    )
+    # 原有字段（利息计算）
+    principal: Optional[float] = Field(None, gt=0, description="Principal amount for interest calculation")
+    start_date: Optional[str] = Field(None, description="YYYY-MM-DD")
+    end_date: Optional[str] = Field(None, description="YYYY-MM-DD")
     rate: Optional[float] = Field(None, description="Annual rate in percent")
     multiplier: Optional[float] = Field(1.0, description="LPR multiplier")
     lpr_term: Optional[str] = Field("1y", description="1y or 5y")
+
+    # 新增字段（份额计算 share_ratio）
+    total_amount: Optional[float] = Field(None, description="Total amount for share_ratio calculation")
+    share_ratio: Optional[float] = Field(None, description="Share ratio in percent (0-100)")
+
+    # 新增字段（最高额封顶 max_limit）
+    calculated_total: Optional[float] = Field(None, description="Calculated total for max_limit check")
+    max_limit: Optional[float] = Field(None, description="Maximum guarantee limit")
+
+    # 新增字段（判决确认金额 confirmed）
+    confirmed_amount: Optional[float] = Field(None, description="Court confirmed amount")
+    source: Optional[str] = Field(None, description="Source of confirmed amount (e.g., judgment number)")
+
+    # 通用字段
+    description: Optional[str] = Field(None, description="Description of the calculation")
 
 
 class InterestCalculationResponse(BaseModel):

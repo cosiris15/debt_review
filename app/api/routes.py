@@ -436,13 +436,63 @@ async def list_project_tasks(
 
 # ============== Tools ==============
 
-@tools_router.post("/calculate-interest", response_model=InterestCalculationResponse)
+@tools_router.post("/calculate-interest")
 async def calculate_interest_endpoint(request: InterestCalculationRequest):
     """
     Calculate interest for a debt.
 
-    Supports: simple, lpr, delay, compound, penalty
+    Supports: simple, lpr, delay, compound, penalty, share_ratio, confirmed, max_limit
     """
+    import logging
+    from app.tools.calculator import get_calculator
+
+    logger = logging.getLogger(__name__)
+    calc = get_calculator()
+
+    # ===== 新增计算类型处理 =====
+
+    # 1. 份额比例计算 (share_ratio)
+    if request.calculation_type == "share_ratio":
+        if request.total_amount is None or request.share_ratio is None:
+            raise HTTPException(400, "share_ratio requires total_amount and share_ratio")
+        result = calc.calculate_share_ratio(
+            total_amount=request.total_amount,
+            share_ratio=request.share_ratio,
+            description=request.description or ""
+        )
+        return result
+
+    # 2. 判决确认金额 (confirmed)
+    elif request.calculation_type == "confirmed":
+        if request.confirmed_amount is None:
+            raise HTTPException(400, "confirmed requires confirmed_amount")
+        result = calc.calculate_confirmed_amount(
+            confirmed_amount=request.confirmed_amount,
+            source=request.source or "",
+            description=request.description or ""
+        )
+        return result
+
+    # 3. 最高额限额封顶 (max_limit)
+    elif request.calculation_type == "max_limit":
+        if request.calculated_total is None or request.max_limit is None:
+            raise HTTPException(400, "max_limit requires calculated_total and max_limit")
+        result = calc.apply_max_limit(
+            calculated_total=request.calculated_total,
+            max_limit=request.max_limit,
+            description=request.description or ""
+        )
+        return result
+
+    # ===== 原有计算类型处理 =====
+
+    # 验证原有计算类型必需字段
+    if request.calculation_type in ["simple", "lpr", "delay", "compound", "penalty"]:
+        if request.principal is None:
+            raise HTTPException(400, f"{request.calculation_type} requires principal")
+        if request.start_date is None or request.end_date is None:
+            raise HTTPException(400, f"{request.calculation_type} requires start_date and end_date")
+
     result = calculate_interest(
         calculation_type=request.calculation_type,
         principal=request.principal,

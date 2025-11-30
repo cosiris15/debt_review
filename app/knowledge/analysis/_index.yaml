@@ -1,0 +1,52 @@
+module:
+  id: analysis
+  name: 债权分析
+  description: 债权分析阶段的工作流程、指南和模板
+
+loading_strategy:
+  eager: false
+  cache: true
+  cache_ttl: 60
+
+files:
+  - id: workflow
+    path: workflow.md
+    priority: 1
+    required: true
+    description: 债权分析工作流程主文档
+
+  - id: amount_interest_guide
+    path: amount_interest_guide.md
+    priority: 2
+    required: true
+    description: 金额和利息分析指南
+
+  - id: statute_limitations
+    path: statute_limitations.md
+    priority: 3
+    required: true
+    description: 诉讼时效分析指南
+
+  - id: quality_control
+    path: quality_control.md
+    priority: 4
+    required: false
+    description: 质量控制指南
+
+  - id: financial_multi_loan
+    path: financial_multi_loan.md
+    priority: 5
+    required: false
+    description: 金融机构多笔贷款处理指南
+
+  - id: incremental_processing
+    path: incremental_processing.md
+    priority: 6
+    required: false
+    description: 增量处理指南
+
+  - id: calculator_usage
+    path: calculator_usage.md
+    priority: 7
+    required: false
+    description: 计算器使用指南

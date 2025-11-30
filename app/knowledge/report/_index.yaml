@@ -1,0 +1,34 @@
+module:
+  id: report
+  name: 报告整理
+  description: 报告整理阶段的工作流程、指南和模板
+
+loading_strategy:
+  eager: false
+  cache: true
+  cache_ttl: 60
+
+files:
+  - id: workflow
+    path: workflow.md
+    priority: 1
+    required: true
+    description: 报告整理工作流程主文档
+
+  - id: merge_guide
+    path: merge_guide.md
+    priority: 2
+    required: true
+    description: 报告合并指南
+
+  - id: incremental_processing
+    path: incremental_processing.md
+    priority: 3
+    required: false
+    description: 增量处理指南
+
+  - id: multi_claim_guide
+    path: multi_claim_guide.md
+    priority: 2
+    required: true
+    description: 多笔债权审查报告编写指南（适用于银团贷款、多合同等复杂案件）

@@ -16,10 +16,12 @@ export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus]
 export const TaskStage = {
   INIT: 'init',
   FACT_CHECK: 'fact_check',
+  LEGAL_DIAGRAM: 'legal_diagram',  // 新增：法律关系图生成
   ANALYSIS: 'analysis',
   REPORT: 'report',
   VALIDATION: 'validation',
-  COMPLETE: 'complete'
+  COMPLETE: 'complete',
+  ERROR: 'error'  // 新增：错误状态
 } as const
 export type TaskStage = typeof TaskStage[keyof typeof TaskStage]
 
@@ -135,13 +137,25 @@ export interface TaskLog {
 // ============== Calculation ==============
 
 export interface InterestCalculationRequest {
-  calculation_type: 'simple' | 'lpr' | 'delay' | 'compound' | 'penalty'
-  principal: number
-  start_date: string
-  end_date: string
+  calculation_type: 'simple' | 'lpr' | 'delay' | 'compound' | 'penalty' | 'share_ratio' | 'confirmed' | 'max_limit'
+  // 原有字段（利息计算）
+  principal?: number
+  start_date?: string
+  end_date?: string
   rate?: number
   multiplier?: number
   lpr_term?: '1y' | '5y'
+  // 新增字段（份额计算 share_ratio）
+  total_amount?: number
+  share_ratio?: number
+  // 新增字段（最高额封顶 max_limit）
+  calculated_total?: number
+  max_limit?: number
+  // 新增字段（判决确认金额 confirmed）
+  confirmed_amount?: number
+  source?: string
+  // 通用字段
+  description?: string
 }
 
 export interface CalculationPeriod {
@@ -176,11 +190,27 @@ export interface ApiResponse<T> {
 export const STAGE_LABELS: Record<TaskStage, string> = {
   [TaskStage.INIT]: '初始化',
   [TaskStage.FACT_CHECK]: '事实核查',
+  [TaskStage.LEGAL_DIAGRAM]: '法律关系图',  // 新增
   [TaskStage.ANALYSIS]: '债权分析',
   [TaskStage.REPORT]: '报告生成',
   [TaskStage.VALIDATION]: '质量验证',
-  [TaskStage.COMPLETE]: '完成'
+  [TaskStage.COMPLETE]: '完成',
+  [TaskStage.ERROR]: '错误'  // 新增
 }
+
+// 新增：向后兼容的阶段显示函数
+// 如果收到未知阶段，显示原始值并标记为未知（醒目样式）
+export function getStageLabelSafe(stage: string): { label: string; isUnknown: boolean } {
+  const knownStages = Object.values(TaskStage) as string[]
+  if (knownStages.includes(stage)) {
+    return { label: STAGE_LABELS[stage as TaskStage], isUnknown: false }
+  }
+  // 未知阶段：返回原始值，标记为未知
+  return { label: stage, isUnknown: true }
+}
+
+// 新增：未知阶段的醒目样式（灰底红字+警告图标）
+export const UNKNOWN_STAGE_STYLE = 'bg-gray-200 text-red-600 border border-red-300'
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.PENDING]: '等待中',
