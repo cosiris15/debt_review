@@ -14,8 +14,8 @@ import type {
   InterestCalculationRequest, InterestCalculationResponse
 } from '@/types'
 
-// API base URL from environment or default
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// API base URL from environment or default to production
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://debt-review-api.onrender.com'
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
