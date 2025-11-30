@@ -39,7 +39,11 @@ api.interceptors.request.use(async (config) => {
     const token = await getAuthToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    } else {
+      console.warn('[API] No auth token available - user may not be signed in')
     }
+  } else {
+    console.warn('[API] Auth token getter not set - setAuthTokenGetter not called')
   }
   return config
 })
