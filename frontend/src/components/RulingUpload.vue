@@ -23,7 +23,7 @@ const emit = defineEmits<{
 }>()
 
 // 状态
-const file = ref<File | null>(null)
+const files = ref<File[]>([])
 const isDragging = ref(false)
 const isParsing = ref(false)
 const parseError = ref<string | null>(null)
@@ -31,7 +31,7 @@ const parsedInfo = ref<ParsedProjectInfo | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
 // 计算属性
-const hasFile = computed(() => file.value !== null)
+const hasFiles = computed(() => files.value.length > 0)
 const hasParsedInfo = computed(() => parsedInfo.value !== null)
 
 // 格式化文件大小
@@ -63,38 +63,61 @@ function handleDrop(e: DragEvent) {
   e.preventDefault()
   isDragging.value = false
 
-  const droppedFile = e.dataTransfer?.files?.[0]
-  if (droppedFile) {
-    setFile(droppedFile)
+  const droppedFiles = e.dataTransfer?.files
+  if (droppedFiles && droppedFiles.length > 0) {
+    addFiles(Array.from(droppedFiles))
   }
 }
 
 // 处理文件选择
 function handleFileSelect(e: Event) {
   const input = e.target as HTMLInputElement
-  const selectedFile = input.files?.[0]
-  if (selectedFile) {
-    setFile(selectedFile)
+  const selectedFiles = input.files
+  if (selectedFiles && selectedFiles.length > 0) {
+    addFiles(Array.from(selectedFiles))
   }
   input.value = ''
 }
 
-// 设置文件
-function setFile(f: File) {
+// 添加文件
+function addFiles(newFiles: File[]) {
   parseError.value = null
   parsedInfo.value = null
 
-  if (!isValidFile(f)) {
-    parseError.value = '请上传 PDF 格式的裁定书文件'
-    return
+  const validFiles: File[] = []
+  const invalidFiles: string[] = []
+
+  for (const f of newFiles) {
+    if (isValidFile(f)) {
+      // 检查是否已存在同名文件
+      if (!files.value.some(existing => existing.name === f.name)) {
+        validFiles.push(f)
+      }
+    } else {
+      invalidFiles.push(f.name)
+    }
   }
 
-  file.value = f
+  if (invalidFiles.length > 0) {
+    parseError.value = `以下文件格式不支持: ${invalidFiles.join(', ')}。请上传 PDF 格式文件。`
+  }
+
+  if (validFiles.length > 0) {
+    files.value = [...files.value, ...validFiles]
+  }
 }
 
-// 清除文件
-function clearFile() {
-  file.value = null
+// 移除单个文件
+function removeFile(index: number) {
+  files.value = files.value.filter((_, i) => i !== index)
+  if (files.value.length === 0) {
+    parsedInfo.value = null
+  }
+}
+
+// 清除所有文件
+function clearFiles() {
+  files.value = []
   parsedInfo.value = null
   parseError.value = null
 }
@@ -106,14 +129,14 @@ function triggerFileSelect() {
 
 // 解析裁定书
 async function parseRuling() {
-  if (!hasFile.value || !file.value) return
+  if (!hasFiles.value || files.value.length === 0) return
 
   isParsing.value = true
   parseError.value = null
 
   try {
     const { parseApi } = await import('@/api/client')
-    const result = await parseApi.parseRuling(file.value)
+    const result = await parseApi.parseRulings(files.value)
 
     parsedInfo.value = result
   } catch (e) {
@@ -152,14 +175,13 @@ function getConfidenceColor(confidence?: number): string {
 
 <template>
   <div class="ruling-upload">
-    <!-- 上传区域（未选择文件时显示） -->
+    <!-- 上传区域 -->
     <div
-      v-if="!hasFile"
       @dragover="handleDragOver"
       @dragleave="handleDragLeave"
       @drop="handleDrop"
       :class="[
-        'border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer',
+        'border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer',
         isDragging
           ? 'border-purple-500 bg-purple-50'
           : 'border-gray-300 hover:border-purple-400 hover:bg-gray-50'
@@ -171,51 +193,70 @@ function getConfidenceColor(confidence?: number): string {
         type="file"
         @change="handleFileSelect"
         accept=".pdf"
+        multiple
         class="hidden"
       />
 
       <div class="flex flex-col items-center">
         <div
           :class="[
-            'w-16 h-16 rounded-full flex items-center justify-center mb-4',
+            'w-14 h-14 rounded-full flex items-center justify-center mb-3',
             isDragging ? 'bg-purple-100' : 'bg-gray-100'
           ]"
         >
-          <Upload :class="['w-8 h-8', isDragging ? 'text-purple-600' : 'text-gray-400']" />
+          <Upload :class="['w-7 h-7', isDragging ? 'text-purple-600' : 'text-gray-400']" />
         </div>
 
         <p class="text-gray-700 font-medium">
           {{ isDragging ? '松开鼠标上传文件' : '拖拽裁定书到此处，或点击选择' }}
         </p>
-        <p class="text-sm text-gray-500 mt-2">
-          支持 PDF 格式（民事裁定书、决定书等）
+        <p class="text-sm text-gray-500 mt-1">
+          支持上传多个 PDF 文件（民事裁定书、决定书等）
         </p>
       </div>
     </div>
 
-    <!-- 已选择文件 -->
-    <div v-else class="space-y-4">
-      <!-- 文件信息 -->
-      <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-        <FileText class="w-8 h-8 text-purple-500 flex-shrink-0" />
+    <!-- 已选择的文件列表 -->
+    <div v-if="hasFiles" class="mt-4 space-y-2">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm text-gray-600">已选择 {{ files.length }} 个文件</span>
+        <button
+          v-if="!isParsing"
+          @click="clearFiles"
+          class="text-sm text-red-500 hover:text-red-600"
+        >
+          清除全部
+        </button>
+      </div>
+
+      <div
+        v-for="(file, index) in files"
+        :key="file.name"
+        class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+      >
+        <FileText class="w-6 h-6 text-purple-500 flex-shrink-0" />
         <div class="flex-1 min-w-0">
-          <p class="font-medium text-gray-700 truncate">{{ file?.name }}</p>
-          <p class="text-sm text-gray-500">{{ formatSize(file?.size || 0) }}</p>
+          <p class="text-sm font-medium text-gray-700 truncate">{{ file.name }}</p>
+          <p class="text-xs text-gray-500">{{ formatSize(file.size) }}</p>
         </div>
         <button
           v-if="!isParsing"
-          @click="clearFile"
-          class="p-2 text-gray-400 hover:text-red-500 transition-colors"
+          @click.stop="removeFile(index)"
+          class="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
         >
-          <X class="w-5 h-5" />
+          <X class="w-4 h-4" />
         </button>
       </div>
+    </div>
+
+    <!-- 解析状态和结果区域 -->
+    <div v-if="hasFiles" class="mt-4 space-y-4">
 
       <!-- 解析状态 -->
       <div v-if="isParsing" class="p-6 bg-purple-50 rounded-lg text-center">
         <Loader2 class="w-10 h-10 text-purple-500 animate-spin mx-auto mb-3" />
         <p class="text-purple-700 font-medium">AI 正在解析裁定书...</p>
-        <p class="text-sm text-purple-600 mt-1">正在提取案号、债务人、受理日期等信息</p>
+        <p class="text-sm text-purple-600 mt-1">正在识别文档内容，提取案号、债务人、受理日期等信息</p>
       </div>
 
       <!-- 解析结果 -->
@@ -255,7 +296,7 @@ function getConfidenceColor(confidence?: number): string {
       <div v-else-if="!parseError" class="p-4 bg-blue-50 rounded-lg border border-blue-200">
         <div class="flex items-center gap-2">
           <Sparkles class="w-5 h-5 text-blue-600" />
-          <span class="text-blue-800">点击下方按钮，AI 将自动提取裁定书中的项目信息</span>
+          <span class="text-blue-800">点击下方按钮，AI 将自动识别并提取裁定书中的项目信息</span>
         </div>
       </div>
     </div>
@@ -279,7 +320,7 @@ function getConfidenceColor(confidence?: number): string {
 
       <!-- 解析按钮 -->
       <button
-        v-if="hasFile && !hasParsedInfo"
+        v-if="hasFiles && !hasParsedInfo"
         @click="parseRuling"
         :disabled="isParsing"
         :class="[

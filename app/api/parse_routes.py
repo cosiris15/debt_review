@@ -438,3 +438,100 @@ async def parse_ruling(
         raise HTTPException(400, "未能识别出债务人名称，请检查文件内容")
 
     return result
+
+
+@parse_router.post("/rulings", response_model=ParsedProjectInfo)
+async def parse_rulings(
+    files: List[UploadFile] = File(...),
+    user: AuthenticatedUser = Depends(get_current_user)
+):
+    """
+    解析多个破产裁定书/决定书 PDF，提取项目基本信息
+
+    支持：民事裁定书、决定书等破产相关文书（包括扫描件）
+    多个文件的内容会合并后一起分析，提取最完整的信息
+
+    处理流程：
+    1. 使用阿里云 qwen-vl-ocr 进行 OCR（支持扫描件）
+    2. 合并所有文件的文本内容
+    3. 使用 LLM 从合并文本中提取结构化信息
+
+    Returns:
+        ParsedProjectInfo: 包含案号、债务人名称、破产受理日期、法院名称
+    """
+    if not files:
+        raise HTTPException(400, "请上传至少一个文件")
+
+    # 限制文件数量和大小
+    MAX_FILES = 10
+    MAX_SIZE_MB = 20
+
+    if len(files) > MAX_FILES:
+        raise HTTPException(400, f"最多支持 {MAX_FILES} 个文件")
+
+    # 获取 OCR 服务
+    ocr_service = get_ocr_service()
+
+    # 处理所有文件
+    all_texts = []
+    processed_files = []
+    warnings = []
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        for file in files:
+            filename = file.filename or "unknown"
+            content_type = file.content_type or ""
+
+            # 验证文件类型
+            if not (content_type == "application/pdf" or filename.lower().endswith(".pdf")):
+                warnings.append(f"跳过非 PDF 文件: {filename}")
+                continue
+
+            # 检查文件大小
+            file.file.seek(0, 2)
+            size = file.file.tell()
+            file.file.seek(0)
+
+            if size > MAX_SIZE_MB * 1024 * 1024:
+                warnings.append(f"文件 {filename} 超过 {MAX_SIZE_MB}MB，已跳过")
+                continue
+
+            # 保存临时文件
+            temp_path = os.path.join(temp_dir, filename)
+            with open(temp_path, "wb") as f:
+                content = await file.read()
+                f.write(content)
+
+            # OCR 处理
+            try:
+                logger.info(f"OCR 处理裁定书: {filename}")
+                text = await ocr_service.ocr_pdf(temp_path)
+
+                if text.strip():
+                    all_texts.append(f"=== 文件: {filename} ===\n{text}")
+                    processed_files.append(filename)
+                else:
+                    warnings.append(f"文件 {filename} 未识别到文本内容")
+
+            except Exception as e:
+                logger.error(f"OCR 处理文件 {filename} 失败: {e}")
+                warnings.append(f"处理文件 {filename} 失败: {str(e)}")
+
+    if not all_texts:
+        error_msg = "没有可处理的文件内容"
+        if warnings:
+            error_msg += f"。警告: {'; '.join(warnings)}"
+        raise HTTPException(400, error_msg)
+
+    # 合并所有文本
+    combined_text = "\n\n".join(all_texts)
+    logger.info(f"合并 {len(processed_files)} 个文件的文本进行解析")
+
+    # 使用 LLM 解析合并后的文本
+    result = await parse_ruling_with_llm(combined_text, ", ".join(processed_files))
+
+    # 验证必填字段
+    if not result.debtor_name:
+        raise HTTPException(400, "未能识别出债务人名称，请检查文件内容")
+
+    return result

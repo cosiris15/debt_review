@@ -2,170 +2,183 @@
 /**
  * Main Application Layout
  *
- * 简化的侧边栏布局：
- * - 产品名称：债权审查方案
- * - 主入口：破产案件（将来可扩展"不良案件"等）
- * - 底部设置菜单
+ * 简洁专业的侧边栏布局：
+ * - 左上角：十行法务 Logo + 产品名称
+ * - 主导航：破产案件（将来可扩展）
+ * - 底部：工具菜单
  */
 import { ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import UserButton from '@/components/UserButton.vue'
-import { Building2, Settings, Calculator, ChevronDown } from 'lucide-vue-next'
+import { Building2, Settings, Calculator, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import LogoImg from '@/assets/Logo.png'
 
 const route = useRoute()
 const isSidebarOpen = ref(true)
 const showSettingsDropdown = ref(false)
 
-// 主产品线入口（将来可扩展更多子产品）
+// 主产品线入口
 const productItems = [
-  { path: '/bankruptcy', label: '破产案件', icon: 'building', description: '破产项目债权审查' },
-  // 将来可添加：{ path: '/npl', label: '不良案件', icon: 'alert', description: '不良资产债权审查' },
+  { path: '/bankruptcy', label: '破产案件', description: '破产项目债权审查' },
 ]
 
-// 设置/工具菜单项
-const settingsItems = [
-  { path: '/calculator', label: '利息计算器', icon: 'calculator', description: '独立计算利息工具' },
+// 工具菜单项
+const toolItems = [
+  { path: '/calculator', label: '利息计算器', description: '独立计算利息工具' },
 ]
 
 function isActive(path: string): boolean {
   if (path === '/bankruptcy') {
-    // /bankruptcy 及其子路由 (/bankruptcy/xxx) 和项目路由 (/projects/xxx) 都算激活
     return route.path === '/bankruptcy' || route.path.startsWith('/projects')
   }
   return route.path.startsWith(path)
 }
 
-function isSettingsActive(): boolean {
-  return settingsItems.some(item => route.path.startsWith(item.path))
+function isToolsActive(): boolean {
+  return toolItems.some(item => route.path.startsWith(item.path))
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 flex">
+  <div class="min-h-screen bg-slate-50 flex">
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed inset-y-0 left-0 z-30 bg-white shadow-lg transition-all duration-300',
-        isSidebarOpen ? 'w-64' : 'w-16'
+        'fixed inset-y-0 left-0 z-30 bg-white border-r border-slate-200 transition-all duration-300 flex flex-col',
+        isSidebarOpen ? 'w-60' : 'w-[72px]'
       ]"
     >
-      <!-- Logo -->
-      <div class="h-16 flex items-center justify-center border-b">
-        <h1
-          v-if="isSidebarOpen"
-          class="text-xl font-bold text-primary-600"
-        >
-          债权审查方案
-        </h1>
-        <span v-else class="text-2xl">📋</span>
+      <!-- Logo Area -->
+      <div class="h-16 flex items-center px-4 border-b border-slate-100">
+        <RouterLink to="/bankruptcy" class="flex items-center gap-3 min-w-0">
+          <img
+            :src="LogoImg"
+            alt="十行法务"
+            class="h-9 w-auto flex-shrink-0"
+          />
+          <div v-if="isSidebarOpen" class="min-w-0">
+            <div class="text-sm font-semibold text-slate-800 truncate">债权审查方案</div>
+            <div class="text-xs text-slate-400">Paralaw</div>
+          </div>
+        </RouterLink>
       </div>
 
       <!-- Navigation -->
-      <nav class="p-4 flex flex-col h-[calc(100%-4rem)]">
-        <!-- 产品线入口 -->
-        <div class="flex-1">
+      <nav class="flex-1 p-3 overflow-y-auto">
+        <!-- 产品入口 -->
+        <div class="mb-2">
+          <div v-if="isSidebarOpen" class="px-3 py-2 text-xs font-medium text-slate-400 uppercase tracking-wider">
+            产品
+          </div>
           <RouterLink
             v-for="item in productItems"
             :key="item.path"
             :to="item.path"
             :class="[
-              'flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors',
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all group',
               isActive(item.path)
-                ? 'bg-primary-50 text-primary-700'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-blue-50 text-blue-700 font-medium'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             ]"
           >
-            <Building2 class="w-5 h-5" />
-            <span v-if="isSidebarOpen">{{ item.label }}</span>
+            <div :class="[
+              'w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
+              isActive(item.path)
+                ? 'bg-blue-100'
+                : 'bg-slate-100 group-hover:bg-slate-200'
+            ]">
+              <Building2 :class="['w-5 h-5', isActive(item.path) ? 'text-blue-600' : 'text-slate-500']" />
+            </div>
+            <div v-if="isSidebarOpen" class="min-w-0">
+              <div class="truncate">{{ item.label }}</div>
+              <div class="text-xs text-slate-400 truncate">{{ item.description }}</div>
+            </div>
           </RouterLink>
-        </div>
-
-        <!-- 设置菜单（底部） -->
-        <div class="relative border-t pt-4 mt-4">
-          <button
-            @click="showSettingsDropdown = !showSettingsDropdown"
-            :class="[
-              'flex items-center gap-3 px-4 py-3 rounded-lg w-full transition-colors',
-              isSettingsActive()
-                ? 'bg-primary-50 text-primary-700'
-                : 'text-gray-600 hover:bg-gray-100'
-            ]"
-          >
-            <Settings class="w-5 h-5" />
-            <span v-if="isSidebarOpen">设置</span>
-            <ChevronDown
-              v-if="isSidebarOpen"
-              class="w-4 h-4 ml-auto transition-transform"
-              :class="{ 'rotate-180': showSettingsDropdown }"
-            />
-          </button>
-
-          <!-- 设置下拉菜单 -->
-          <div
-            v-if="showSettingsDropdown && isSidebarOpen"
-            class="mt-1 bg-white rounded-lg border shadow-lg overflow-hidden"
-          >
-            <RouterLink
-              v-for="item in settingsItems"
-              :key="item.path"
-              :to="item.path"
-              @click="showSettingsDropdown = false"
-              :class="[
-                'block px-4 py-3 hover:bg-gray-50 transition-colors',
-                isActive(item.path) ? 'bg-primary-50' : ''
-              ]"
-            >
-              <div class="flex items-center gap-2">
-                <Calculator class="w-4 h-4 text-gray-500" />
-                <span class="font-medium text-gray-800">{{ item.label }}</span>
-              </div>
-              <div class="text-xs text-gray-500 mt-1 ml-6">{{ item.description }}</div>
-            </RouterLink>
-          </div>
         </div>
       </nav>
 
-      <!-- Toggle button -->
+      <!-- Tools Section -->
+      <div class="p-3 border-t border-slate-100">
+        <button
+          @click="showSettingsDropdown = !showSettingsDropdown"
+          :class="[
+            'flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all group',
+            isToolsActive()
+              ? 'bg-blue-50 text-blue-700'
+              : 'text-slate-600 hover:bg-slate-50'
+          ]"
+        >
+          <div :class="[
+            'w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
+            isToolsActive()
+              ? 'bg-blue-100'
+              : 'bg-slate-100 group-hover:bg-slate-200'
+          ]">
+            <Settings :class="['w-5 h-5', isToolsActive() ? 'text-blue-600' : 'text-slate-500']" />
+          </div>
+          <span v-if="isSidebarOpen" class="flex-1 text-left">工具</span>
+          <ChevronDown
+            v-if="isSidebarOpen"
+            class="w-4 h-4 text-slate-400 transition-transform"
+            :class="{ 'rotate-180': showSettingsDropdown }"
+          />
+        </button>
+
+        <!-- Tools Dropdown -->
+        <div
+          v-if="showSettingsDropdown && isSidebarOpen"
+          class="mt-1 bg-slate-50 rounded-lg overflow-hidden"
+        >
+          <RouterLink
+            v-for="item in toolItems"
+            :key="item.path"
+            :to="item.path"
+            @click="showSettingsDropdown = false"
+            :class="[
+              'flex items-center gap-3 px-3 py-2.5 transition-colors',
+              isActive(item.path)
+                ? 'bg-blue-50 text-blue-700'
+                : 'text-slate-600 hover:bg-slate-100'
+            ]"
+          >
+            <Calculator class="w-4 h-4" />
+            <span class="text-sm">{{ item.label }}</span>
+          </RouterLink>
+        </div>
+      </div>
+
+      <!-- Collapse Toggle -->
       <button
         @click="isSidebarOpen = !isSidebarOpen"
-        class="absolute bottom-4 right-4 p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+        class="absolute -right-3 top-20 w-6 h-6 bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-center hover:bg-slate-50 transition-colors"
       >
-        <svg
-          class="w-5 h-5 text-gray-600 transition-transform"
-          :class="{ 'rotate-180': !isSidebarOpen }"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-        </svg>
+        <ChevronLeft v-if="isSidebarOpen" class="w-4 h-4 text-slate-400" />
+        <ChevronRight v-else class="w-4 h-4 text-slate-400" />
       </button>
     </aside>
 
-    <!-- Main content -->
+    <!-- Main Content -->
     <main
       :class="[
-        'flex-1 transition-all duration-300',
-        isSidebarOpen ? 'ml-64' : 'ml-16'
+        'flex-1 transition-all duration-300 flex flex-col min-h-screen',
+        isSidebarOpen ? 'ml-60' : 'ml-[72px]'
       ]"
     >
       <!-- Header -->
-      <header class="h-16 bg-white shadow-sm flex items-center px-6 sticky top-0 z-20">
+      <header class="h-14 bg-white border-b border-slate-200 flex items-center px-6 sticky top-0 z-20">
         <div class="flex-1">
-          <slot name="header">
-            <h2 class="text-lg font-semibold text-gray-800">
-              {{ route.meta.title || '债权审查系统' }}
-            </h2>
-          </slot>
+          <h1 class="text-base font-medium text-slate-800">
+            {{ route.meta.title || '债权审查方案' }}
+          </h1>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3">
           <slot name="header-actions" />
           <UserButton />
         </div>
       </header>
 
-      <!-- Content -->
-      <div class="p-6">
+      <!-- Content Area -->
+      <div class="flex-1 p-6">
         <slot />
       </div>
     </main>

@@ -370,7 +370,7 @@ export const parseApi = {
   },
 
   /**
-   * 解析裁定书 PDF，提取项目基本信息
+   * 解析裁定书 PDF，提取项目基本信息（单文件）
    */
   async parseRuling(file: File): Promise<ParsedProjectInfo> {
     const formData = new FormData()
@@ -382,6 +382,28 @@ export const parseApi = {
           'Content-Type': 'multipart/form-data'
         },
         timeout: 60000  // 1 分钟超时
+      })
+      return response.data
+    } catch (error) {
+      handleError(error as AxiosError)
+    }
+  },
+
+  /**
+   * 解析多个裁定书 PDF，提取项目基本信息
+   */
+  async parseRulings(files: File[]): Promise<ParsedProjectInfo> {
+    const formData = new FormData()
+    files.forEach(file => {
+      formData.append('files', file)
+    })
+
+    try {
+      const response = await api.post<ParsedProjectInfo>('/parse/rulings', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        timeout: 120000  // 2 分钟超时（多文件处理需要更长时间）
       })
       return response.data
     } catch (error) {
