@@ -1,5 +1,13 @@
 /**
  * Vue Router Configuration with Clerk Auth Guards
+ *
+ * 路由结构：
+ * - / → 重定向到 /bankruptcy
+ * - /bankruptcy → 破产案件主页（项目列表）
+ * - /projects/new → 创建项目
+ * - /projects/:id → 项目详情
+ * - /projects/:projectId/creditors/:creditorId → 债权人详情
+ * - /calculator → 利息计算器
  */
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -23,15 +31,18 @@ const router = createRouter({
     // Protected routes (auth required)
     {
       path: '/',
-      name: 'home',
-      component: () => import('@/pages/HomePage.vue'),
-      meta: { title: '首页' }
+      redirect: '/bankruptcy'
     },
     {
+      path: '/bankruptcy',
+      name: 'bankruptcy',
+      component: () => import('@/pages/BankruptcyPage.vue'),
+      meta: { title: '破产案件' }
+    },
+    {
+      // 保留旧路由兼容性
       path: '/projects',
-      name: 'projects',
-      component: () => import('@/pages/ProjectsPage.vue'),
-      meta: { title: '项目管理' }
+      redirect: '/bankruptcy'
     },
     {
       path: '/projects/new',

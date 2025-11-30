@@ -1,11 +1,15 @@
 <script setup lang="ts">
 /**
- * Projects List Page
+ * Bankruptcy Page (破产案件)
+ *
+ * 破产案件主页，直接展示项目列表，允许新建项目。
+ * 这是"破产案件"产品线的主入口。
  */
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/stores/project'
+import { Plus, Building2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const projectStore = useProjectStore()
@@ -29,12 +33,20 @@ function getProgressPercent(project: typeof projects.value[0]): number {
   <div>
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">项目管理</h1>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+          <Building2 class="w-5 h-5 text-primary-600" />
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold text-gray-800">破产案件</h1>
+          <p class="text-sm text-gray-500">管理破产项目，审查债权人申报</p>
+        </div>
+      </div>
       <button
         @click="router.push('/projects/new')"
         class="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center gap-2"
       >
-        <span class="text-lg">+</span>
+        <Plus class="w-4 h-4" />
         新建项目
       </button>
     </div>
@@ -51,13 +63,16 @@ function getProgressPercent(project: typeof projects.value[0]): number {
 
     <!-- Empty state -->
     <div v-else-if="projects.length === 0" class="bg-white rounded-xl shadow-sm p-12 text-center">
-      <div class="text-6xl mb-4">📁</div>
+      <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+        <Building2 class="w-10 h-10 text-gray-400" />
+      </div>
       <h3 class="text-xl font-semibold text-gray-800 mb-2">暂无项目</h3>
       <p class="text-gray-600 mb-6">创建您的第一个破产项目开始使用</p>
       <button
         @click="router.push('/projects/new')"
-        class="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+        class="px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors inline-flex items-center gap-2"
       >
+        <Plus class="w-4 h-4" />
         创建项目
       </button>
     </div>

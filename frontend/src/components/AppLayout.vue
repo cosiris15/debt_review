@@ -2,29 +2,36 @@
 /**
  * Main Application Layout
  *
- * Provides consistent header, sidebar, and content area.
+ * 简化的侧边栏布局：
+ * - 产品名称：债权审查方案
+ * - 主入口：破产案件（将来可扩展"不良案件"等）
+ * - 底部设置菜单
  */
 import { ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import UserButton from '@/components/UserButton.vue'
+import { Building2, Settings, Calculator, ChevronDown } from 'lucide-vue-next'
 
 const route = useRoute()
 const isSidebarOpen = ref(true)
 const showSettingsDropdown = ref(false)
 
-// 主导航项（计算器已移至设置菜单）
-const navItems = [
-  { path: '/', label: '首页', icon: 'home' },
-  { path: '/projects', label: '项目管理', icon: 'folder' },
+// 主产品线入口（将来可扩展更多子产品）
+const productItems = [
+  { path: '/bankruptcy', label: '破产案件', icon: 'building', description: '破产项目债权审查' },
+  // 将来可添加：{ path: '/npl', label: '不良案件', icon: 'alert', description: '不良资产债权审查' },
 ]
 
-// 设置/高级功能菜单项
+// 设置/工具菜单项
 const settingsItems = [
   { path: '/calculator', label: '利息计算器', icon: 'calculator', description: '独立计算利息工具' },
 ]
 
 function isActive(path: string): boolean {
-  if (path === '/') return route.path === '/'
+  if (path === '/bankruptcy') {
+    // /bankruptcy 及其子路由 (/bankruptcy/xxx) 和项目路由 (/projects/xxx) 都算激活
+    return route.path === '/bankruptcy' || route.path.startsWith('/projects')
+  }
   return route.path.startsWith(path)
 }
 
@@ -48,17 +55,17 @@ function isSettingsActive(): boolean {
           v-if="isSidebarOpen"
           class="text-xl font-bold text-primary-600"
         >
-          债权审查系统
+          债权审查方案
         </h1>
         <span v-else class="text-2xl">📋</span>
       </div>
 
       <!-- Navigation -->
       <nav class="p-4 flex flex-col h-[calc(100%-4rem)]">
-        <!-- 主导航项 -->
+        <!-- 产品线入口 -->
         <div class="flex-1">
           <RouterLink
-            v-for="item in navItems"
+            v-for="item in productItems"
             :key="item.path"
             :to="item.path"
             :class="[
@@ -68,10 +75,7 @@ function isSettingsActive(): boolean {
                 : 'text-gray-600 hover:bg-gray-100'
             ]"
           >
-            <!-- Icons (simplified) -->
-            <span class="text-xl">
-              {{ item.icon === 'home' ? '🏠' : '📁' }}
-            </span>
+            <Building2 class="w-5 h-5" />
             <span v-if="isSidebarOpen">{{ item.label }}</span>
           </RouterLink>
         </div>
@@ -87,18 +91,13 @@ function isSettingsActive(): boolean {
                 : 'text-gray-600 hover:bg-gray-100'
             ]"
           >
-            <span class="text-xl">⚙️</span>
+            <Settings class="w-5 h-5" />
             <span v-if="isSidebarOpen">设置</span>
-            <svg
+            <ChevronDown
               v-if="isSidebarOpen"
               class="w-4 h-4 ml-auto transition-transform"
               :class="{ 'rotate-180': showSettingsDropdown }"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
+            />
           </button>
 
           <!-- 设置下拉菜单 -->
@@ -117,7 +116,7 @@ function isSettingsActive(): boolean {
               ]"
             >
               <div class="flex items-center gap-2">
-                <span>🧮</span>
+                <Calculator class="w-4 h-4 text-gray-500" />
                 <span class="font-medium text-gray-800">{{ item.label }}</span>
               </div>
               <div class="text-xs text-gray-500 mt-1 ml-6">{{ item.description }}</div>
