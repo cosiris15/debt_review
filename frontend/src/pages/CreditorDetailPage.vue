@@ -3,13 +3,15 @@
  * Creditor Detail Page
  *
  * Shows creditor info, processing status, reports, and calculations.
+ * Supports Markdown rendering with Mermaid diagrams.
  */
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { creditorsApi, reportsApi, type Report, type Calculation } from '@/api/client'
 import type { Creditor } from '@/types'
 import { CreditorStatus, STAGE_LABELS } from '@/types'
-import { FileText, Calculator, ArrowLeft, Download, Eye, Clock, CheckCircle, XCircle, Loader } from 'lucide-vue-next'
+import { FileText, Calculator, ArrowLeft, Download, Eye, Clock, CheckCircle, XCircle, Loader, X, GitBranch } from 'lucide-vue-next'
+import MarkdownViewer from '@/components/MarkdownViewer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,7 +26,6 @@ const calculations = ref<Calculation[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 const activeTab = ref<'reports' | 'calculations'>('reports')
-const expandedReport = ref<string | null>(null)
 
 // Default status config
 const defaultStatusConfig = { icon: Clock, class: 'text-gray-500 bg-gray-100', label: '未知' }
@@ -45,9 +46,23 @@ const statusConfig = computed(() => {
 
 const reportTypeLabels: Record<string, string> = {
   fact_check: '事实核查报告',
+  legal_diagram: '法律关系图',
   analysis: '债权分析报告',
   final: '审查意见表'
 }
+
+// 报告图标
+const reportTypeIcons: Record<string, typeof FileText> = {
+  fact_check: FileText,
+  legal_diagram: GitBranch,
+  analysis: FileText,
+  final: FileText
+}
+
+// 全屏查看状态
+const viewingReport = ref<Report | null>(null)
+const reportFullContent = ref<string>('')
+const loadingContent = ref(false)
 
 // Methods
 async function fetchData() {
@@ -86,8 +101,28 @@ function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleString('zh-CN')
 }
 
-function toggleReport(reportId: string) {
-  expandedReport.value = expandedReport.value === reportId ? null : reportId
+// 打开报告全屏预览
+async function openReportViewer(report: Report) {
+  viewingReport.value = report
+  loadingContent.value = true
+  reportFullContent.value = ''
+
+  try {
+    const content = await reportsApi.getFullContent(report.id)
+    reportFullContent.value = content
+  } catch (e) {
+    console.error('Failed to load report content:', e)
+    // 回退到预览内容
+    reportFullContent.value = report.content_preview || '无法加载报告内容'
+  } finally {
+    loadingContent.value = false
+  }
+}
+
+// 关闭报告预览
+function closeReportViewer() {
+  viewingReport.value = null
+  reportFullContent.value = ''
 }
 
 function goBack() {
@@ -244,56 +279,53 @@ onMounted(() => {
             <p class="text-sm mt-1">处理完成后将显示报告</p>
           </div>
 
-          <div v-else class="space-y-4">
+          <div v-else class="space-y-3">
             <div
               v-for="report in reports"
               :key="report.id"
-              class="border rounded-lg overflow-hidden"
+              class="border border-slate-200 rounded-lg overflow-hidden hover:border-blue-300 transition-colors"
             >
               <div
-                @click="toggleReport(report.id)"
-                class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
+                @click="openReportViewer(report)"
+                class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50"
               >
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                    <FileText class="w-5 h-5 text-primary-600" />
+                  <div :class="[
+                    'w-10 h-10 rounded-lg flex items-center justify-center',
+                    report.report_type === 'legal_diagram' ? 'bg-purple-100' : 'bg-blue-100'
+                  ]">
+                    <component
+                      :is="reportTypeIcons[report.report_type] || FileText"
+                      :class="[
+                        'w-5 h-5',
+                        report.report_type === 'legal_diagram' ? 'text-purple-600' : 'text-blue-600'
+                      ]"
+                    />
                   </div>
                   <div>
-                    <h4 class="font-medium text-gray-800">
+                    <h4 class="font-medium text-slate-800">
                       {{ reportTypeLabels[report.report_type] || report.report_type }}
                     </h4>
-                    <p class="text-sm text-gray-500">{{ report.file_name }}</p>
+                    <p class="text-sm text-slate-500">{{ report.file_name }}</p>
                   </div>
                 </div>
-                <div class="flex items-center gap-3">
-                  <span class="text-sm text-gray-400">{{ formatDate(report.created_at) }}</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-slate-400">{{ formatDate(report.created_at) }}</span>
                   <button
-                    @click.stop="toggleReport(report.id)"
-                    class="p-2 text-gray-400 hover:text-primary-600"
-                    title="预览"
+                    @click.stop="openReportViewer(report)"
+                    class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="查看完整内容"
                   >
                     <Eye class="w-5 h-5" />
                   </button>
                   <button
                     @click.stop="downloadReport(report)"
-                    class="p-2 text-gray-400 hover:text-primary-600"
+                    class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     title="下载"
                   >
                     <Download class="w-5 h-5" />
                   </button>
                 </div>
-              </div>
-
-              <!-- Report Preview -->
-              <div
-                v-if="expandedReport === report.id && report.content_preview"
-                class="border-t bg-gray-50 p-4"
-              >
-                <h5 class="text-sm font-medium text-gray-700 mb-2">内容预览</h5>
-                <pre class="text-sm text-gray-600 whitespace-pre-wrap font-sans">{{ report.content_preview }}</pre>
-                <p v-if="report.content_preview.length >= 500" class="text-sm text-gray-400 mt-2">
-                  ... 内容已截断，点击下载查看完整报告
-                </p>
               </div>
             </div>
           </div>
@@ -332,6 +364,70 @@ onMounted(() => {
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 报告预览弹窗 -->
+    <div
+      v-if="viewingReport"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      @click.self="closeReportViewer"
+    >
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+        <!-- 弹窗头部 -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+          <div class="flex items-center gap-3">
+            <div :class="[
+              'w-10 h-10 rounded-lg flex items-center justify-center',
+              viewingReport.report_type === 'legal_diagram' ? 'bg-purple-100' : 'bg-blue-100'
+            ]">
+              <component
+                :is="reportTypeIcons[viewingReport.report_type] || FileText"
+                :class="[
+                  'w-5 h-5',
+                  viewingReport.report_type === 'legal_diagram' ? 'text-purple-600' : 'text-blue-600'
+                ]"
+              />
+            </div>
+            <div>
+              <h3 class="font-semibold text-slate-800">
+                {{ reportTypeLabels[viewingReport.report_type] || viewingReport.report_type }}
+              </h3>
+              <p class="text-sm text-slate-500">{{ viewingReport.file_name }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              @click="downloadReport(viewingReport)"
+              class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            >
+              <Download class="w-4 h-4" />
+              下载
+            </button>
+            <button
+              @click="closeReportViewer"
+              class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <!-- 弹窗内容 -->
+        <div class="flex-1 overflow-hidden">
+          <!-- 加载中 -->
+          <div v-if="loadingContent" class="flex items-center justify-center h-64">
+            <Loader class="w-8 h-8 text-blue-500 animate-spin" />
+          </div>
+
+          <!-- Markdown 渲染 -->
+          <div v-else class="h-full overflow-auto">
+            <MarkdownViewer
+              :content="reportFullContent"
+              :title="reportTypeLabels[viewingReport.report_type]"
+            />
           </div>
         </div>
       </div>

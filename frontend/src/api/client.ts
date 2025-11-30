@@ -90,7 +90,7 @@ export interface Report {
   id: string
   creditor_id: string
   task_id: string
-  report_type: 'fact_check' | 'analysis' | 'final'
+  report_type: 'fact_check' | 'legal_diagram' | 'analysis' | 'final'
   file_name: string
   file_path: string
   content_preview?: string
@@ -241,9 +241,21 @@ export const reportsApi = {
     }
   },
 
+  async getFullContent(id: string): Promise<string> {
+    try {
+      const response = await api.get(`/reports/${id}/content`, {
+        responseType: 'text'
+      })
+      return response.data
+    } catch (error) {
+      handleError(error as AxiosError)
+    }
+  },
+
   async downloadContent(id: string): Promise<Blob> {
     try {
       const response = await api.get(`/reports/${id}/content`, {
+        params: { download: true },
         responseType: 'blob'
       })
       return response.data

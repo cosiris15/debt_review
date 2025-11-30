@@ -273,27 +273,47 @@ async def get_report(
 @reports_router.get("/{report_id}/content", response_class=PlainTextResponse)
 async def get_report_content(
     report_id: str,
+    download: bool = False,
     user: AuthenticatedUser = Depends(get_current_user)
 ):
     """
-    Get the full content of a report for download.
-    Returns plain text markdown content.
+    Get the full content of a report.
+    If download=true, returns as attachment for download.
+    Otherwise returns for inline viewing.
     Requires authentication.
     """
+    import os
+
     report = db.get_report(report_id)
     if not report:
         raise HTTPException(404, "Report not found")
 
-    content = report.get("content") or report.get("content_preview") or ""
+    content = None
+
+    # 优先从文件读取完整内容
+    file_path = report.get("file_path")
+    if file_path and os.path.exists(file_path):
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+        except Exception as e:
+            logger.warning(f"Failed to read report file {file_path}: {e}")
+
+    # 回退到数据库存储的内容
+    if not content:
+        content = report.get("content") or report.get("content_preview") or ""
+
     if not content:
         raise HTTPException(404, "Report content not available")
+
+    headers = {}
+    if download:
+        headers["Content-Disposition"] = f'attachment; filename="{report.get("file_name", "report.md")}"'
 
     return PlainTextResponse(
         content=content,
         media_type="text/markdown",
-        headers={
-            "Content-Disposition": f'attachment; filename="{report.get("file_name", "report.md")}"'
-        }
+        headers=headers
     )
 
 
