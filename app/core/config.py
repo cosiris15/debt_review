@@ -58,7 +58,8 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://localhost:3000",
         "https://debt.parallm.tech",
-        "https://debt-review.pages.dev"
+        "https://debt-review.pages.dev",
+        "https://debt-review.vercel.app"
     ]
 
     # LangSmith Configuration (for LangGraph Studio)
