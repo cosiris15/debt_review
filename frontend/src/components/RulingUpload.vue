@@ -63,17 +63,18 @@ function handleDrop(e: DragEvent) {
   e.preventDefault()
   isDragging.value = false
 
-  const droppedFiles = e.dataTransfer?.files
-  if (droppedFiles && droppedFiles.length > 0) {
-    setFile(droppedFiles[0])
+  const droppedFile = e.dataTransfer?.files?.[0]
+  if (droppedFile) {
+    setFile(droppedFile)
   }
 }
 
 // 处理文件选择
 function handleFileSelect(e: Event) {
   const input = e.target as HTMLInputElement
-  if (input.files && input.files.length > 0) {
-    setFile(input.files[0])
+  const selectedFile = input.files?.[0]
+  if (selectedFile) {
+    setFile(selectedFile)
   }
   input.value = ''
 }

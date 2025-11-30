@@ -11,7 +11,7 @@ import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/project'
 import RulingUpload from '@/components/RulingUpload.vue'
 import type { ParsedProjectInfo } from '@/api/client'
-import { Sparkles, FileText, ChevronDown, ChevronUp, CheckCircle } from 'lucide-vue-next'
+import { Sparkles, ChevronDown, ChevronUp, CheckCircle } from 'lucide-vue-next'
 
 const router = useRouter()
 const projectStore = useProjectStore()

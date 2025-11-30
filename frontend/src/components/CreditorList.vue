@@ -512,7 +512,7 @@ function formatAmount(amount?: number): string {
       v-if="showSmartImport"
       :project-id="projectId"
       @close="showSmartImport = false"
-      @success="(count) => { showSmartImport = false; projectStore.fetchCreditors(projectId) }"
+      @success="() => { showSmartImport = false; projectStore.fetchCreditors(projectId) }"
     />
   </div>
 </template>

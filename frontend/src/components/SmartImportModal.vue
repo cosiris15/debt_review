@@ -9,9 +9,18 @@ import { ref, computed } from 'vue'
 import { X, Sparkles } from 'lucide-vue-next'
 import MaterialUpload from './MaterialUpload.vue'
 import CreditorPreview from './CreditorPreview.vue'
-import { parseApi, type ParsedCreditor } from '@/api/client'
 import { useProjectStore } from '@/stores/project'
 import type { CreditorCreate } from '@/types'
+
+// 解析结果类型（与 MaterialUpload 组件一致）
+interface ParsedCreditor {
+  creditor_name: string
+  declared_amount?: number
+  source_file: string
+  batch_number: number
+  creditor_number: number
+  confidence?: number
+}
 
 const props = defineProps<{
   projectId: string
@@ -30,8 +39,6 @@ const currentStep = ref<Step>('upload')
 
 // 解析结果
 const parsedCreditors = ref<ParsedCreditor[]>([])
-const parseWarnings = ref<string[]>([])
-const parseConfidence = ref(0)
 
 // 提交状态
 const isSubmitting = ref(false)

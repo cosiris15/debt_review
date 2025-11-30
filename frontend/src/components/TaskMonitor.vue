@@ -25,6 +25,7 @@ const {
 const stages = [
   TaskStage.INIT,
   TaskStage.FACT_CHECK,
+  TaskStage.LEGAL_DIAGRAM,
   TaskStage.ANALYSIS,
   TaskStage.REPORT,
   TaskStage.VALIDATION,
@@ -33,7 +34,10 @@ const stages = [
 
 const currentStageIndex = computed(() => {
   if (!currentProgress.value) return -1
-  return stages.indexOf(currentProgress.value.current_stage as TaskStage)
+  const stage = currentProgress.value.current_stage
+  // 处理 error 状态：不在正常流程中，返回 -1
+  if (stage === TaskStage.ERROR) return -1
+  return stages.indexOf(stage)
 })
 
 function getStageStatus(index: number): 'completed' | 'current' | 'pending' {

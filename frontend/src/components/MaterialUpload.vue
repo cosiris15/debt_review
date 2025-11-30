@@ -22,8 +22,9 @@ interface ParsedCreditor {
   creditor_name: string
   declared_amount?: number
   source_file: string
-  batch_number?: number
-  creditor_number?: number
+  batch_number: number
+  creditor_number: number
+  confidence?: number
 }
 
 // 状态
